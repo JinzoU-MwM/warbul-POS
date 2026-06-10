@@ -1,0 +1,26 @@
+/* warbul.css — shared brand tokens for the Warbul system */
+:root{
+  --green-900:#21342A; --green-800:#2A4032; --green-700:#34503D; --green-600:#3E5C46; --green-500:#4F6B57;
+  --cream:#F4EDD9; --cream-200:#EBE0C4; --cream-300:#E0D2B0; --cream-400:#D2C09A;
+  --gold:#F0BE48; --gold-600:#E0A431; --gold-700:#C68C24;
+  --orange:#DD8A3E; --orange-600:#C9762C;
+  --coffee:#5C3D24; --coffee-900:#3A2618; --ink:#2A2018;
+  --paper:#FBF7EC; --paper-2:#F6EFDD;
+  --line:#E4D8BC;
+  --red:#C24B3A; --red-bg:#F7E3DE;
+  --green-ok:#3E7C53; --green-ok-bg:#E2EEDF;
+  --blue:#3E6B86;
+  --shadow-sm:0 4px 12px -6px rgba(58,38,24,.35);
+  --shadow-md:0 12px 28px -12px rgba(33,52,42,.4);
+  --shadow-lg:0 24px 48px -18px rgba(33,52,42,.45);
+}
+*{box-sizing:border-box}
+.brand{font-family:'Baloo 2',sans-serif;}
+.num{font-family:'Baloo 2',sans-serif;font-weight:700;font-variant-numeric:tabular-nums;}
+.t-cream{color:var(--cream)} .t-gold{color:var(--gold)} .t-green{color:var(--green-800)}
+.btn{border:none;cursor:pointer;font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;}
+.btn-gold{background:var(--gold);color:var(--coffee-900);}
+.btn-green{background:var(--green-800);color:var(--cream);}
+button{font-family:inherit}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--cream-400);border-radius:8px}

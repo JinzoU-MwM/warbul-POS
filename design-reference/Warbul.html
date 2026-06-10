@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warbul — Sistem Kasir Kafe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="warbul.css" />
+<style>
+  html,body{margin:0}
+  body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--cream);
+    background:
+      radial-gradient(120% 90% at 12% -10%, #34503D 0%, transparent 55%),
+      radial-gradient(100% 80% at 100% 0%, #2A4032 0%, transparent 50%),
+      var(--green-900);
+    min-height:100vh}
+  .wrap{max-width:1340px;margin:0 auto;padding:30px 30px 70px}
+  .topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:30px}
+  .logo{display:flex;align-items:center;gap:13px}
+  .btn{border:none;cursor:pointer;font-family:inherit;font-weight:700;border-radius:13px;transition:.15s;font-size:14px}
+  .btn:active{transform:translateY(1px)}
+  .ghost{background:rgba(255,255,255,.08);color:var(--cream);border:1px solid rgba(255,255,255,.15)}
+  .ghost:hover{background:rgba(255,255,255,.14)}
+  h1{font-family:'Baloo 2',sans-serif;font-weight:800;font-size:clamp(34px,5vw,56px);line-height:1.04;margin:0;letter-spacing:-.01em}
+  .lead{font-size:clamp(15px,1.5vw,18px);color:rgba(244,237,217,.78);max-width:620px;line-height:1.6;margin:16px 0 0}
+  .demo{display:grid;grid-template-columns:auto 1fr;gap:28px;margin-top:40px;align-items:start}
+  .col-label{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:700;color:rgba(244,237,217,.7);margin-bottom:13px}
+  .col-label .dot{width:8px;height:8px;border-radius:9px}
+  .phoneholder{width:430px}
+  .frame-mobile{width:430px;height:830px;border:none;border-radius:30px;background:#000;display:block}
+  /* browser window for POS */
+  .winbar{background:#e7ddc8;border-radius:14px 14px 0 0;padding:11px 16px;display:flex;align-items:center;gap:9px;border:1px solid rgba(0,0,0,.06);border-bottom:none}
+  .traffic{width:12px;height:12px;border-radius:50%}
+  .winurl{margin-left:14px;background:#fff;border-radius:8px;padding:6px 14px;font-size:12.5px;color:#6f6353;font-weight:600;flex:1;max-width:340px}
+  .frame-pos{width:100%;height:780px;border:none;border-radius:0 0 14px 14px;background:#fff;display:block;box-shadow:0 30px 70px -28px rgba(0,0,0,.6)}
+  .steps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px}
+  .step{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:13px;padding:11px 15px;font-size:13.5px;color:rgba(244,237,217,.9)}
+  .step b{color:var(--gold)}
+  .stepn{width:24px;height:24px;border-radius:50%;background:var(--gold);color:var(--coffee-900);font-weight:800;font-size:13px;display:grid;place-items:center;flex:0 0 auto;font-family:'Baloo 2',sans-serif}
+  @media(max-width:1180px){.demo{grid-template-columns:1fr;justify-items:center}.phoneholder{width:380px}.frame-mobile{width:380px;height:760px}.poscol{width:100%;max-width:760px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="logo"><img src="assets/warbul-logo.png" width="48" height="48" style="border-radius:50%;display:block"/>
+      <div><div class="brand t-gold" style="font-size:24px;font-weight:800;line-height:1">Warbul</div><div style="font-size:11px;color:rgba(244,237,217,.55);font-weight:600;letter-spacing:.05em">SISTEM KASIR KAFE</div></div>
+    </div>
+    <div style="display:flex;gap:11px">
+      <button class="btn ghost" onclick="resetDemo()" style="padding:11px 16px">↺ Reset Demo</button>
+      <a class="btn ghost" href="Warbul Mobile.html" target="_blank" style="padding:11px 16px;text-decoration:none">Web Pelanggan ↗</a>
+      <a class="btn ghost" href="Warbul Owner.html" target="_blank" style="padding:11px 16px;text-decoration:none">Dasbor Pemilik ↗</a>
+      <a class="btn" href="Warbul POS.html" target="_blank" style="padding:11px 16px;text-decoration:none;background:var(--gold);color:var(--coffee-900)">Kasir POS ↗</a>
+    </div>
+  </div>
+
+  <h1>Pesan dari meja, <span class="t-gold">tersaji</span> tanpa antre.</h1>
+  <p class="lead">Pelanggan scan QR di meja, buka menu di browser, lalu pesan & bayar sendiri. Pesanan langsung muncul di dasbor kasir secara real-time — coba sendiri di bawah ini.</p>
+
+  <div class="steps">
+    <div class="step"><span class="stepn">1</span><span>Pesan menu di <b>HP (kiri)</b> & pilih bayar</span></div>
+    <div class="step"><span class="stepn">2</span><span>Pesanan muncul <b>live</b> di kasir (kanan)</span></div>
+    <div class="step"><span class="stepn">3</span><span>Kasir <b>verifikasi bayar</b> → status update di HP</span></div>
+  </div>
+
+  <div class="demo">
+    <div class="phoneholder">
+      <div class="col-label"><span class="dot" style="background:#7FB08A"></span>WEB PELANGGAN · scan dari meja</div>
+      <iframe id="mobile" class="frame-mobile" src="Warbul Mobile.html"></iframe>
+    </div>
+    <div class="poscol">
+      <div class="col-label"><span class="dot" style="background:var(--gold)"></span>DASBOR KASIR · real-time</div>
+      <div class="winbar">
+        <span class="traffic" style="background:#ED6A5E"></span><span class="traffic" style="background:#F4BE4F"></span><span class="traffic" style="background:#61C554"></span>
+        <span class="winurl">🔒 pos.warbul.id/pesanan</span>
+      </div>
+      <iframe id="pos" class="frame-pos" src="Warbul POS.html"></iframe>
+    </div>
+  </div>
+</div>
+
+<script src="warbul.js"></script>
+<script>
+  function resetDemo(){
+    try{ window.Warbul.resetAll(); }catch(e){}
+    try{ sessionStorage.removeItem("warbul_kasir"); }catch(e){}
+    try{ localStorage.removeItem("warbul_cust"); }catch(e){}
+    document.getElementById("mobile").contentWindow.location.reload();
+    document.getElementById("pos").contentWindow.location.reload();
+  }
+</script>
+</body>
+</html>

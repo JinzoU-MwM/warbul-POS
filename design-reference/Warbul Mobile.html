@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warbul — App Pelanggan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="warbul.css" />
+<style>
+  html,body{margin:0;height:100%}
+  body{background:#cdbb9c;font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);
+    display:grid;place-items:center;overflow:hidden}
+  /* device frame */
+  #stage{display:grid;place-items:center;width:100vw;height:100vh;
+    background:radial-gradient(120% 120% at 50% 0%,#d9c8a8,#bfa985)}
+  .bezel{width:392px;height:812px;background:#1c150f;border-radius:46px;padding:11px;
+    box-shadow:0 40px 80px -24px rgba(0,0,0,.5),inset 0 0 0 2px #322417;position:relative}
+  .screen{width:100%;height:100%;background:var(--cream);border-radius:36px;overflow:hidden;
+    position:relative;display:flex;flex-direction:column}
+  /* mobile browser chrome */
+  .chrome{flex:0 0 auto;background:#E7E0CF;z-index:50}
+  .os-status{height:42px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 24px 4px;font-size:12.5px;font-weight:700;color:var(--green-900)}
+  .urlbar{display:flex;align-items:center;gap:9px;margin:2px 12px 10px;background:#fff;
+    border-radius:13px;padding:9px 14px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .urlbar .u{flex:1;text-align:center;font-size:13px;color:#5b5145;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .webview{flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;background:var(--cream)}
+  /* layout */
+  .statusbar{height:42px;display:flex;align-items:flex-end;justify-content:space-between;
+    padding:0 22px 5px;font-size:12px;font-weight:700;flex:0 0 auto;z-index:5}
+  .body{flex:1;overflow-y:auto;overflow-x:hidden;position:relative;-webkit-overflow-scrolling:touch}
+  .body::-webkit-scrollbar{display:none}
+  .price{font-family:'Baloo 2',sans-serif;font-weight:700}
+  .chip{font-weight:700;font-size:13px;border-radius:999px;padding:8px 15px;white-space:nowrap;cursor:pointer;transition:.15s}
+  .tile{position:relative;overflow:hidden}
+  .tile .glyph{position:absolute;inset:0;display:grid;place-items:center}
+  .tag{position:absolute;top:8px;left:8px;font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:999px;letter-spacing:.02em;white-space:nowrap}
+  #root ::-webkit-scrollbar{width:0;height:0;display:none}
+  #root *{scrollbar-width:none;-ms-overflow-style:none}
+  .add-btn{display:grid;place-items:center;font-weight:800;border:none;cursor:pointer;transition:transform .12s}
+  .add-btn:active{transform:scale(.88)}
+  .sheet-wrap{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;justify-content:flex-end}
+  .sheet-bd{position:absolute;inset:0;background:rgba(28,20,12,.5);animation:fade .2s}
+  .sheet{position:relative;background:var(--cream);border-radius:28px 28px 0 0;animation:up .28s cubic-bezier(.2,.9,.3,1);max-height:88%;display:flex;flex-direction:column}
+  @keyframes fade{from{opacity:0}} @keyframes up{from{transform:translateY(100%)}}
+  @keyframes pop{from{transform:scale(.9);opacity:0}}
+  .step{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-weight:800;font-size:14px}
+  .fab{position:absolute;left:16px;right:16px;bottom:16px;z-index:20}
+  .optpill{border:1.5px solid var(--line);background:#fff;border-radius:11px;padding:9px 13px;font-size:13px;font-weight:600;cursor:pointer;transition:.12s;color:var(--ink)}
+  .optpill.on{border-color:var(--green-700);background:var(--green-ok-bg);color:var(--green-800);font-weight:700}
+  .num{font-family:'Baloo 2',sans-serif;font-weight:700}
+  .receipt{font-family:'Plus Jakarta Sans',sans-serif}
+  .receipt .dash{border:none;border-top:1.5px dashed #c9bfa6;margin:9px 0}
+  @media print{
+    body{background:#fff!important}
+    body *{visibility:hidden!important}
+    #rcpt, #rcpt *{visibility:visible!important}
+    #rcpt{position:fixed!important;left:0;top:0;width:100%;box-shadow:none!important;border-radius:0!important}
+    .rcpt-actions{display:none!important}
+  }
+</style>
+</head>
+<body>
+<div id="stage"><div class="bezel"><div class="screen">
+  <div class="chrome">
+    <div class="os-status">
+      <span>9:41</span>
+      <span style="display:flex;gap:6px;align-items:center;opacity:.92">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="none"><rect x="0" y="6" width="3" height="5" rx="1" fill="currentColor"/><rect x="4.5" y="3.5" width="3" height="7.5" rx="1" fill="currentColor"/><rect x="9" y="1.5" width="3" height="9.5" rx="1" fill="currentColor"/><rect x="13.5" y="0" width="3" height="11" rx="1" fill="currentColor" opacity=".4"/></svg>
+        <svg width="23" height="12" viewBox="0 0 25 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="2.5" stroke="currentColor" stroke-opacity=".5"/><rect x="2.5" y="2.5" width="15" height="7" rx="1.4" fill="currentColor"/><rect x="22" y="4" width="2" height="4" rx="1" fill="currentColor"/></svg>
+      </span>
+    </div>
+    <div class="urlbar">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="4" y="10" width="16" height="11" rx="2.5" fill="#6b8f74"/><path d="M7.5 10V7a4.5 4.5 0 0 1 9 0v3" stroke="#6b8f74" stroke-width="2.2"/></svg>
+      <span class="u">warbul.id/meja/07</span>
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M20 11a8 8 0 1 0-1.6 5.5M20 5v5h-5" stroke="#8a7f6d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </div>
+  <div id="root" class="webview"></div>
+</div></div></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="warbul.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const W = window.Warbul;
+const rp = W.rupiah;
+const TABLE = 7;
+
+/* ---------- glyphs ---------- */
+const Cup = ({c="#fff",s=46}) => (<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M9 16h26v11a9 9 0 0 1-9 9H18a9 9 0 0 1-9-9V16Z" stroke={c} strokeWidth="2.4"/><path d="M35 19h4a4 4 0 0 1 0 8h-4" stroke={c} strokeWidth="2.4"/><path d="M16 7c-1.5 2 1.5 3 0 5M23 7c-1.5 2 1.5 3 0 5" stroke={c} strokeWidth="2.2" strokeLinecap="round" opacity=".8"/></svg>);
+const Bowl = ({c="#fff",s=46}) => (<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M8 22h32a16 16 0 0 1-16 16A16 16 0 0 1 8 22Z" stroke={c} strokeWidth="2.4"/><path d="M16 22c0-7 16-7 16 0M20 9c-1 2 1 3 0 5M27 9c-1 2 1 3 0 5" stroke={c} strokeWidth="2.2" strokeLinecap="round"/></svg>);
+const Fries = ({c="#fff",s=46}) => (<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M13 22h22l-2 16H15l-2-16Z" stroke={c} strokeWidth="2.4"/><path d="M17 22l-1-11M22 22V9M27 22l1-12M32 22l2-9" stroke={c} strokeWidth="2.2" strokeLinecap="round"/></svg>);
+const Bean = ({c="#fff",s=46}) => (<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><ellipse cx="24" cy="24" rx="13" ry="17" stroke={c} strokeWidth="2.4"/><path d="M24 8c-5 6-5 26 0 32M19 11c4 4 4 22 0 26" stroke={c} strokeWidth="2.2" opacity=".85"/></svg>);
+const GLYPH = { cup:Cup, bowl:Bowl, fries:Fries, bean:Bean };
+const FoodTile = ({it,h,s}) => { const G=GLYPH[it.g]||Cup; const out=!W.isOrderable(it); return (
+  <div className="tile" style={{height:h,background:`linear-gradient(135deg,${it.grad[0]},${it.grad[1]})`}}>
+    <div className="glyph"><G c="rgba(255,255,255,.82)" s={s||44}/></div>
+    {out && <div style={{position:"absolute",inset:0,background:"rgba(28,20,12,.55)",display:"grid",placeItems:"center",color:"#fff",fontWeight:800,fontSize:12,letterSpacing:".04em"}}>HABIS</div>}
+  </div>); };
+
+/* ---------- icons ---------- */
+const Ico = {
+  search:(p)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" {...p}><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2"/><path d="m20 20-3-3" stroke="currentColor" strokeWidth="2"/></svg>,
+  back:(p)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" {...p}><path d="M15 19l-7-7 7-7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  cart:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><path d="M5 7h15l-1.5 9.5a2 2 0 0 1-2 1.7H8.5a2 2 0 0 1-2-1.7L5 4H2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><circle cx="9" cy="21" r="1.4" fill="currentColor"/><circle cx="17" cy="21" r="1.4" fill="currentColor"/></svg>,
+  check:(p)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" {...p}><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  print:(p)=><svg width="17" height="17" viewBox="0 0 24 24" fill="none" {...p}><path d="M7 9V4h10v5M7 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 15h10v5H7v-5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  star:(p)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" {...p}><path d="M12 3l2.6 5.6 6 .8-4.4 4.2 1.1 6L12 17l-5.3 2.6 1.1-6L3.4 9.4l6-.8L12 3Z" fill="currentColor"/></svg>,
+};
+const fee = W.SERVICE_FEE;
+const lineKey=(id,sel)=>id+"|"+JSON.stringify(sel);
+
+/* ============================ APP ============================ */
+function App(){
+  const persisted = JSON.parse(localStorage.getItem("warbul_cust") || "{}");
+  const [view,setView]=useState(persisted.view||"menu");
+  const [cart,setCart]=useState(persisted.cart||{});        // {key:{id,sel,qty}}
+  const [orderId,setOrderId]=useState(persisted.orderId||null);
+  const [detail,setDetail]=useState(null);
+  const [method,setMethod]=useState("qris");
+  const [promo,setPromo]=useState(null);                     // {code,amount,message}
+  const [phone,setPhone]=useState(persisted.phone||"");
+  const [menu,setMenu]=useState(W.getMenu());
+
+  useEffect(()=>{ localStorage.setItem("warbul_cust",JSON.stringify({view,cart,orderId,phone})); },[view,cart,orderId,phone]);
+  useEffect(()=>{ W.onChange(()=>setMenu(W.getMenu())); },[]);
+
+  const lines = Object.keys(cart).map(key=>{const l=cart[key];const it=menu.find(m=>m.id===l.id);if(!it)return null;
+    return {key,it,sel:l.sel,qty:l.qty,opts:W.modSummary(it,l.sel),unit:W.unitPrice(it,l.sel)};}).filter(Boolean);
+  const cartCount = lines.reduce((a,l)=>a+l.qty,0);
+  const subtotal = lines.reduce((s,l)=>s+l.unit*l.qty,0);
+  const promoAmount = promo? Math.min(promo.amount,subtotal):0;
+  const totals = W.computeTotals(lines.map(l=>({price:l.unit,qty:l.qty})), promoAmount);
+
+  const addLine=(id,sel,n)=>setCart(c=>{const k=lineKey(id,sel);const cur=c[k];const q=(cur?cur.qty:0)+n;
+    const nc={...c}; if(q<=0)delete nc[k]; else nc[k]={id,sel,qty:q}; return nc;});
+  const setQty=(key,n)=>setCart(c=>{const cur=c[key];if(!cur)return c;const q=cur.qty+n;const nc={...c};if(q<=0)delete nc[key];else nc[key]={...cur,qty:q};return nc;});
+
+  const placeOrder=()=>{
+    const items=lines.map(l=>({id:l.it.id,name:l.it.name,price:l.unit,qty:l.qty,opts:l.opts}));
+    const t=W.computeTotals(items.map(i=>({price:i.price,qty:i.qty})), promoAmount);
+    const o=W.addOrder({ table:TABLE, method, items, subtotal:t.subtotal, service:t.service, discount:t.discount, total:t.total,
+      promo: promo?{code:promo.code,amount:promoAmount}:null, phone: phone||null, status:W.STATUS.WAIT_PAY, paid:false,
+      note: method==="qris" ? "Menunggu verifikasi QRIS" : "Menunggu pembayaran di kasir" });
+    setOrderId(o.id); setCart({}); setPromo(null); setView("status");
+  };
+
+  return (<>
+    {view==="menu" && <Menu {...{menu,setDetail,cartCount,subtotal,setView}}/>}
+    {view==="cart" && <Cart {...{lines,subtotal,setQty,setView,setDetail}}/>}
+    {view==="checkout" && <Checkout {...{lines,subtotal,totals,method,setMethod,setView,placeOrder,promo,setPromo,phone,setPhone}}/>}
+    {view==="status" && <Status {...{orderId,setView,setOrderId}}/>}
+    {detail && <Detail it={detail} onClose={()=>setDetail(null)} onAdd={(sel,n)=>{addLine(detail.id,sel,n);setDetail(null);}}/>}
+  </>);
+}
+
+/* ============================ MENU ============================ */
+function StockBadge({it}){
+  if(!W.isOrderable(it)) return null;
+  if(typeof it.stock==="number" && it.stock<=5) return (
+    <span className="tag" style={{background:"#F8EAD6",color:"var(--orange-600)",left:"auto",right:8}}>Sisa {it.stock}</span>);
+  return null;
+}
+function Menu({menu,setDetail,cartCount,subtotal,setView}){
+  const [q,setQ]=useState("");
+  const [cat,setCat]=useState("Semua");
+  const cats=["Semua",...W.CATS];
+  let list=menu.filter(m=>cat==="Semua"||m.cat===cat);
+  if(q)list=list.filter(m=>m.name.toLowerCase().includes(q.toLowerCase()));
+  return (<>
+    <div style={{background:"var(--green-800)",flex:"0 0 auto"}}>
+      <div style={{padding:"16px 20px 18px",color:"var(--cream)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <div style={{fontSize:12,opacity:.75}}>Selamat datang di</div>
+            <div className="brand" style={{fontSize:30,fontWeight:800,lineHeight:1.05,color:"var(--gold)"}}>Warbul</div>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:7,background:"rgba(255,255,255,.12)",padding:"8px 13px",borderRadius:13}}>
+            <span style={{width:8,height:8,borderRadius:9,background:"var(--gold)",boxShadow:"0 0 0 3px rgba(240,190,72,.25)"}}></span>
+            <span style={{fontSize:13,fontWeight:700}}>Meja {String(TABLE).padStart(2,"0")}</span>
+          </div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:9,background:"rgba(255,255,255,.95)",borderRadius:14,padding:"11px 15px",marginTop:16,color:"#9b8e76"}}>
+          <span style={{color:"#b6a98e"}}>{Ico.search()}</span>
+          <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Cari menu favoritmu…" style={{border:"none",outline:"none",background:"none",flex:1,fontSize:14,fontFamily:"inherit",color:"var(--ink)"}}/>
+        </div>
+      </div>
+    </div>
+    <div className="body" style={{background:"var(--cream)"}}>
+      <div style={{display:"flex",gap:9,overflowX:"auto",padding:"16px 20px 4px"}} className="chiprow">
+        {cats.map(c=>(<div key={c} className="chip" onClick={()=>setCat(c)} style={{flex:"0 0 auto",
+          background:cat===c?"var(--green-700)":"#fff",color:cat===c?"var(--cream)":"var(--green-700)",
+          border:"1.5px solid "+(cat===c?"var(--green-700)":"var(--line)")}}>{c}</div>))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,padding:"14px 20px 120px"}}>
+        {list.map(it=>{const ok=W.isOrderable(it);return(
+          <div key={it.id} onClick={()=>ok&&setDetail(it)} style={{background:"#fff",borderRadius:20,overflow:"hidden",
+            border:"1px solid var(--cream-200)",boxShadow:"var(--shadow-sm)",cursor:ok?"pointer":"default",opacity:ok?1:.72}}>
+            <div style={{position:"relative"}}>
+              <FoodTile it={it} h={96} s={46}/>
+              {it.tag&&<span className="tag" style={{background:"var(--gold)",color:"var(--coffee-900)"}}>{it.tag}</span>}
+              <StockBadge it={it}/>
+            </div>
+            <div style={{padding:"10px 12px 12px"}}>
+              <div style={{fontWeight:700,fontSize:13.5,lineHeight:1.25,minHeight:34}}>{it.name}</div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+                <span className="price" style={{color:"var(--coffee)",fontSize:16}}>{rp(it.price)}</span>
+                {ok
+                  ? <button className="add-btn" onClick={e=>{e.stopPropagation();setDetail(it);}} style={{width:30,height:30,borderRadius:10,background:"var(--green-700)",color:"#fff",fontSize:18}}>+</button>
+                  : <span style={{fontSize:11,fontWeight:700,color:"#b6a98e"}}>Habis</span>}
+              </div>
+            </div>
+          </div>);})}
+      </div>
+    </div>
+    {cartCount>0 && <div className="fab">
+      <button onClick={()=>setView("cart")} className="btn" style={{width:"100%",background:"var(--green-800)",color:"var(--cream)",
+        borderRadius:18,padding:"14px 18px",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:"var(--shadow-md)"}}>
+        <span style={{display:"flex",alignItems:"center",gap:11}}>
+          <span style={{position:"relative",color:"var(--gold)"}}>{Ico.cart()}
+            <span style={{position:"absolute",top:-7,right:-8,background:"var(--gold)",color:"var(--coffee-900)",fontSize:10,fontWeight:800,minWidth:16,height:16,borderRadius:9,display:"grid",placeItems:"center",padding:"0 4px"}}>{cartCount}</span>
+          </span>
+          <span style={{fontWeight:700,fontSize:13.5}}>Lihat Keranjang</span>
+        </span>
+        <span className="price" style={{fontSize:17,color:"var(--gold)"}}>{rp(subtotal)}</span>
+      </button>
+    </div>}
+  </>);
+}
+
+/* ============================ DETAIL SHEET (with modifiers) ============================ */
+function Detail({it,onClose,onAdd}){
+  const groups=W.modGroupsFor(it);
+  const [sel,setSel]=useState(W.defaultSelection(it));
+  const [n,setN]=useState(1);
+  const max = typeof it.stock==="number" ? Math.max(1,it.stock) : 99;
+  const unit=W.unitPrice(it,sel);
+  const setSingle=(gid,oid)=>setSel(s=>({...s,[gid]:oid}));
+  const toggleMulti=(gid,oid)=>setSel(s=>{const arr=s[gid]||[];return {...s,[gid]:arr.includes(oid)?arr.filter(x=>x!==oid):[...arr,oid]};});
+  return (<div className="sheet-wrap">
+    <div className="sheet-bd" onClick={onClose}></div>
+    <div className="sheet">
+      <div style={{position:"relative",flex:"0 0 auto"}}>
+        <FoodTile it={it} h={180} s={86}/>
+        {it.tag&&<span className="tag" style={{background:"var(--gold)",color:"var(--coffee-900)",top:16,left:16,fontSize:11}}>{it.tag}</span>}
+        <button onClick={onClose} style={{position:"absolute",top:14,right:14,width:34,height:34,borderRadius:50,background:"rgba(28,20,12,.45)",color:"#fff",border:"none",fontSize:18,cursor:"pointer"}}>✕</button>
+      </div>
+      <div style={{padding:"18px 22px 0",overflowY:"auto",flex:1}}>
+        <div style={{display:"flex",alignItems:"center",gap:8}}>
+          <div style={{display:"inline-block",fontSize:11,fontWeight:700,color:"var(--green-700)",background:"var(--green-ok-bg)",padding:"4px 10px",borderRadius:999}}>{it.cat}</div>
+          {typeof it.stock==="number"&&it.stock<=5&&<div style={{fontSize:11,fontWeight:700,color:"var(--orange-600)"}}>Tinggal {it.stock} porsi</div>}
+        </div>
+        <div className="brand" style={{fontSize:24,fontWeight:700,marginTop:10}}>{it.name}</div>
+        <div className="price" style={{fontSize:22,color:"var(--coffee)",marginTop:2}}>{rp(it.price)}</div>
+        <p style={{fontSize:14,lineHeight:1.55,color:"#6f6353",marginTop:10}}>{it.desc}</p>
+        {groups.map(g=>(
+          <div key={g.id} style={{marginTop:18}}>
+            <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:9}}>
+              <span style={{fontWeight:700,fontSize:14}}>{g.name}</span>
+              <span style={{fontSize:11,color:"#a99c86",fontWeight:600}}>{g.type==="single"?"Pilih 1":"Opsional"}</span>
+            </div>
+            <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+              {g.options.map(o=>{const on=g.type==="single"?sel[g.id]===o.id:(sel[g.id]||[]).includes(o.id);return(
+                <div key={o.id} className={"optpill"+(on?" on":"")} onClick={()=>g.type==="single"?setSingle(g.id,o.id):toggleMulti(g.id,o.id)}>
+                  {o.label}{o.price>0&&<span style={{color:"var(--coffee)",fontWeight:700}}> +{rp(o.price)}</span>}
+                </div>);})}
+            </div>
+          </div>
+        ))}
+        <div style={{height:8}}></div>
+      </div>
+      <div style={{padding:"14px 22px 24px",display:"flex",gap:14,alignItems:"center",borderTop:"1px solid var(--line)",flex:"0 0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:14,background:"var(--cream)",borderRadius:14,padding:"8px 12px"}}>
+          <button onClick={()=>setN(x=>Math.max(1,x-1))} style={{width:30,height:30,borderRadius:9,border:"none",background:"#fff",fontSize:20,fontWeight:700,cursor:"pointer",color:"var(--green-800)"}}>−</button>
+          <span className="num" style={{fontSize:18,minWidth:18,textAlign:"center"}}>{n}</span>
+          <button onClick={()=>setN(x=>Math.min(max,x+1))} style={{width:30,height:30,borderRadius:9,border:"none",background:"var(--green-700)",color:"#fff",fontSize:20,fontWeight:700,cursor:"pointer"}}>+</button>
+        </div>
+        <button onClick={()=>onAdd(sel,n)} className="btn btn-gold" style={{flex:1,borderRadius:14,padding:"15px",fontSize:14.5,display:"flex",justifyContent:"center",gap:8}}>
+          Tambah · {rp(unit*n)}
+        </button>
+      </div>
+    </div>
+  </div>);
+}
+
+/* ============================ CART ============================ */
+function CartHeader({title,onBack}){return(
+  <div style={{background:"var(--green-800)",flex:"0 0 auto"}}>
+    <div style={{display:"flex",alignItems:"center",gap:14,padding:"16px 18px 18px",color:"var(--cream)"}}>
+      <button onClick={onBack} style={{background:"rgba(255,255,255,.12)",border:"none",color:"var(--cream)",width:38,height:38,borderRadius:12,display:"grid",placeItems:"center",cursor:"pointer"}}>{Ico.back()}</button>
+      <div className="brand" style={{fontSize:21,fontWeight:700}}>{title}</div>
+    </div>
+  </div>);}
+const OptsLine=({opts})=> opts&&opts.length? <div style={{fontSize:11.5,color:"#8b7f6c",marginTop:3,lineHeight:1.35}}>{opts.join(" · ")}</div> : null;
+
+function Cart({lines,subtotal,setQty,setView,setDetail}){
+  if(!lines.length)return(<>
+    <CartHeader title="Keranjang" onBack={()=>setView("menu")}/>
+    <div className="body" style={{display:"grid",placeItems:"center",textAlign:"center",padding:30}}>
+      <div><div style={{opacity:.3}}><Bean c="var(--green-800)" s={70}/></div>
+      <div style={{fontWeight:700,marginTop:12,fontSize:16}}>Keranjang masih kosong</div>
+      <div style={{color:"#8b7f6c",fontSize:13,marginTop:4}}>Yuk pilih menu favoritmu dulu ☕</div>
+      <button onClick={()=>setView("menu")} className="btn btn-green" style={{marginTop:18,borderRadius:13,padding:"12px 22px"}}>Lihat Menu</button></div>
+    </div></>);
+  return(<>
+    <CartHeader title="Keranjang Kamu" onBack={()=>setView("menu")}/>
+    <div className="body" style={{background:"var(--cream)"}}>
+      <div style={{padding:"16px 18px 8px",display:"flex",flexDirection:"column",gap:11}}>
+        {lines.map(l=>(
+          <div key={l.key} style={{display:"flex",gap:13,background:"#fff",borderRadius:18,padding:11,border:"1px solid var(--cream-200)",boxShadow:"var(--shadow-sm)"}}>
+            <div style={{borderRadius:13,overflow:"hidden",width:64,height:64,flex:"0 0 auto"}}><FoodTile it={l.it} h={64} s={30}/></div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontWeight:700,fontSize:13.5,lineHeight:1.2}}>{l.it.name}</div>
+              <OptsLine opts={l.opts}/>
+              <div className="price" style={{color:"var(--coffee)",fontSize:15,marginTop:4}}>{rp(l.unit)}</div>
+            </div>
+            <div style={{display:"flex",alignItems:"flex-end"}}>
+              <div style={{display:"flex",alignItems:"center",gap:11}}>
+                <button onClick={()=>setQty(l.key,-1)} style={{width:28,height:28,borderRadius:9,border:"1.5px solid var(--line)",background:"#fff",fontSize:17,cursor:"pointer",color:"var(--green-800)",fontWeight:700}}>−</button>
+                <span className="num" style={{fontSize:15,minWidth:14,textAlign:"center"}}>{l.qty}</span>
+                <button onClick={()=>setQty(l.key,1)} style={{width:28,height:28,borderRadius:9,border:"none",background:"var(--green-700)",color:"#fff",fontSize:17,cursor:"pointer",fontWeight:700}}>+</button>
+              </div>
+            </div>
+          </div>
+        ))}
+        <button onClick={()=>setView("menu")} style={{alignSelf:"center",marginTop:6,background:"none",border:"none",color:"var(--green-700)",fontWeight:700,fontSize:13.5,cursor:"pointer",textDecoration:"underline"}}>+ Tambah menu lain</button>
+      </div>
+      <div style={{padding:"14px 18px 130px"}}>
+        <div style={{background:"#fff",borderRadius:18,padding:"16px 17px",border:"1px solid var(--cream-200)"}}>
+          <Row k="Subtotal" v={rp(subtotal)}/>
+          <Row k="Biaya layanan" v={rp(fee)}/>
+          <div style={{height:1,background:"var(--line)",margin:"11px 0"}}></div>
+          <Row k="Total" v={rp(subtotal+fee)} big/>
+        </div>
+      </div>
+    </div>
+    <div className="fab"><button onClick={()=>setView("checkout")} className="btn btn-gold" style={{width:"100%",borderRadius:18,padding:"15px",fontSize:15,display:"flex",justifyContent:"center",gap:8,boxShadow:"var(--shadow-md)"}}>Lanjut ke Pembayaran →</button></div>
+  </>);
+}
+const Row=({k,v,big,accent})=>(<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0"}}>
+  <span style={{fontSize:big?15:13.5,fontWeight:big?700:500,color:big?"var(--ink)":(accent||"#6f6353")}}>{k}</span>
+  <span className="price" style={{fontSize:big?20:14.5,color:big?"var(--coffee)":(accent||"var(--ink)")}}>{v}</span></div>);
+
+/* ============================ CHECKOUT ============================ */
+function PromoBox({subtotal,promo,setPromo}){
+  const [code,setCode]=useState("");
+  const [msg,setMsg]=useState(null);
+  const apply=()=>{const r=W.applyPromo(code,subtotal); if(r.ok){setPromo({code:r.code,amount:r.amount,message:r.message});setMsg(null);setCode("");} else {setMsg(r.message);}};
+  if(promo) return (
+    <div style={{display:"flex",alignItems:"center",gap:11,background:"var(--green-ok-bg)",border:"1px dashed var(--green-ok)",borderRadius:13,padding:"12px 14px"}}>
+      <span style={{width:30,height:30,borderRadius:8,background:"var(--green-ok)",color:"#fff",display:"grid",placeItems:"center",fontWeight:800,fontSize:13}}>%</span>
+      <div style={{flex:1}}><div style={{fontWeight:700,fontSize:13.5,color:"var(--green-ok)"}}>{promo.code} dipakai</div><div style={{fontSize:11.5,color:"#6f8a72"}}>{promo.message}</div></div>
+      <button onClick={()=>setPromo(null)} style={{background:"none",border:"none",color:"var(--red)",fontWeight:700,fontSize:12.5,cursor:"pointer"}}>Hapus</button>
+    </div>);
+  return(<div>
+    <div style={{display:"flex",gap:9}}>
+      <input value={code} onChange={e=>{setCode(e.target.value.toUpperCase());setMsg(null);}} placeholder="Kode promo (cth. NGOPI5)" style={{flex:1,border:"1.5px solid var(--line)",borderRadius:12,padding:"12px 14px",fontSize:13.5,outline:"none",fontFamily:"inherit",letterSpacing:".03em",textTransform:"uppercase",background:"#fff"}}/>
+      <button onClick={apply} className="btn btn-green" style={{borderRadius:12,padding:"0 18px",fontSize:13.5}}>Pakai</button>
+    </div>
+    {msg&&<div style={{color:"var(--red)",fontSize:12,fontWeight:600,marginTop:6}}>{msg}</div>}
+    <div style={{fontSize:11.5,color:"#a99c86",marginTop:7}}>Coba: <b>NGOPI5</b> · <b>WARBUL10</b> · <b>HEMAT20</b></div>
+  </div>);
+}
+function Checkout({lines,subtotal,totals,method,setMethod,setView,placeOrder,promo,setPromo,phone,setPhone}){
+  const member = phone&&phone.length>=8 ? W.getMember(phone) : null;
+  const methods=[
+    {id:"qris",name:"QRIS",desc:"Scan & bayar langsung dari HP",ico:"qr"},
+    {id:"kasir",name:"Bayar di Kasir",desc:"Bayar tunai / kartu saat ke kasir",ico:"cash"},
+  ];
+  return(<>
+    <CartHeader title="Pembayaran" onBack={()=>setView("cart")}/>
+    <div className="body" style={{background:"var(--cream)"}}>
+      <div style={{padding:"18px 18px 6px"}}>
+        <div style={{fontSize:12,fontWeight:800,letterSpacing:".06em",color:"#8b7f6c",marginBottom:11}}>METODE PEMBAYARAN</div>
+        <div style={{display:"flex",flexDirection:"column",gap:11}}>
+          {methods.map(m=>{const on=method===m.id;return(
+            <div key={m.id} onClick={()=>setMethod(m.id)} style={{display:"flex",alignItems:"center",gap:14,background:"#fff",
+              borderRadius:17,padding:"15px 16px",cursor:"pointer",border:"2px solid "+(on?"var(--green-700)":"transparent"),
+              boxShadow:on?"var(--shadow-sm)":"none",transition:".15s"}}>
+              <div style={{width:46,height:46,borderRadius:13,background:on?"var(--green-700)":"var(--cream)",color:on?"var(--gold)":"var(--green-700)",display:"grid",placeItems:"center"}}>
+                {m.ico==="qr"
+                  ? <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2"/><path d="M14 14h3v3M21 14v7h-7M17 21v-3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  : <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="6" width="19" height="13" rx="2.5" stroke="currentColor" strokeWidth="2"/><path d="M2.5 10h19" stroke="currentColor" strokeWidth="2"/><circle cx="17.5" cy="14.5" r="1.4" fill="currentColor"/></svg>}
+              </div>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:700,fontSize:15}}>{m.name}</div>
+                <div style={{fontSize:12.5,color:"#8b7f6c",marginTop:1}}>{m.desc}</div>
+              </div>
+              <div style={{width:22,height:22,borderRadius:50,border:"2px solid "+(on?"var(--green-700)":"var(--line)"),display:"grid",placeItems:"center"}}>
+                {on&&<div style={{width:11,height:11,borderRadius:50,background:"var(--green-700)"}}></div>}
+              </div>
+            </div>);})}
+        </div>
+      </div>
+      <div style={{padding:"14px 18px 4px"}}>
+        <div style={{fontSize:12,fontWeight:800,letterSpacing:".06em",color:"#8b7f6c",marginBottom:11}}>PROMO & POIN</div>
+        <PromoBox subtotal={subtotal} promo={promo} setPromo={setPromo}/>
+        <div style={{display:"flex",alignItems:"center",gap:10,background:"#fff",borderRadius:13,padding:"4px 6px 4px 14px",marginTop:11,border:"1px solid var(--cream-200)"}}>
+          <span style={{color:"var(--gold-600)"}}>{Ico.star()}</span>
+          <input value={phone} onChange={e=>setPhone(e.target.value.replace(/[^0-9]/g,""))} placeholder="No. HP — kumpulkan poin (opsional)" style={{flex:1,border:"none",outline:"none",fontSize:13,fontFamily:"inherit",padding:"10px 0",background:"none"}}/>
+        </div>
+        {member&&<div style={{fontSize:12,color:"var(--green-ok)",fontWeight:700,marginTop:7}}>★ Member dikenali — {member.points} poin · {member.stamps}/10 stempel</div>}
+      </div>
+      <div style={{padding:"14px 18px 130px"}}>
+        <div style={{fontSize:12,fontWeight:800,letterSpacing:".06em",color:"#8b7f6c",marginBottom:11}}>RINGKASAN · MEJA {String(TABLE).padStart(2,"0")}</div>
+        <div style={{background:"#fff",borderRadius:18,padding:"15px 17px",border:"1px solid var(--cream-200)"}}>
+          {lines.map(l=>(<div key={l.key} style={{display:"flex",justifyContent:"space-between",gap:10,padding:"5px 0",fontSize:13.5}}>
+            <span style={{flex:1,minWidth:0}}><span className="num" style={{color:"var(--green-700)"}}>{l.qty}×</span> {l.it.name}<OptsLine opts={l.opts}/></span>
+            <span className="price">{rp(l.unit*l.qty)}</span></div>))}
+          <div style={{height:1,background:"var(--line)",margin:"11px 0"}}></div>
+          <Row k="Subtotal" v={rp(totals.subtotal)}/>
+          {totals.discount>0&&<Row k={"Diskon"+(promo?" ("+promo.code+")":"")} v={"−"+rp(totals.discount)} accent="var(--green-ok)"/>}
+          <Row k="Biaya layanan" v={rp(totals.service)}/>
+          <div style={{height:1,background:"var(--line)",margin:"11px 0"}}></div>
+          <Row k="Total" v={rp(totals.total)} big/>
+        </div>
+      </div>
+    </div>
+    <div className="fab"><button onClick={placeOrder} className="btn btn-gold" style={{width:"100%",borderRadius:18,padding:"15px",fontSize:15,boxShadow:"var(--shadow-md)"}}>
+      {method==="qris"?`Bayar ${rp(totals.total)} via QRIS`:`Pesan Sekarang · ${rp(totals.total)}`}</button></div>
+  </>);
+}
+
+/* ============================ ORDER STATUS ============================ */
+function Status({orderId,setView,setOrderId}){
+  const [order,setOrder]=useState(()=>W.getOrders().find(o=>o.id===orderId));
+  const [showQR,setShowQR]=useState(order&&order.method==="qris"&&!order.paid);
+  const [receipt,setReceipt]=useState(false);
+  useEffect(()=>{
+    const refresh=()=>{const o=W.getOrders().find(x=>x.id===orderId);setOrder(o);};
+    W.onChange(refresh); const iv=setInterval(refresh,1500); return ()=>clearInterval(iv);
+  },[orderId]);
+  if(!order)return(<><CartHeader title="Pesanan" onBack={()=>setView("menu")}/><div className="body" style={{display:"grid",placeItems:"center"}}>Pesanan tidak ditemukan.</div></>);
+
+  const steps=[
+    {key:W.STATUS.WAIT_PAY,label:order.method==="qris"?"Pembayaran QRIS":"Pembayaran"},
+    {key:W.STATUS.PAID,label:"Pembayaran Diterima"},
+    {key:W.STATUS.COOKING,label:"Pesanan Diproses"},
+    {key:W.STATUS.DONE,label:"Siap / Selesai"},
+  ];
+  const order_idx=steps.findIndex(s=>s.key===order.status);
+  const member = order.phone ? W.getMember(order.phone) : null;
+
+  if(showQR){return(<>
+    <CartHeader title="Pembayaran QRIS" onBack={()=>setShowQR(false)}/>
+    <div className="body" style={{background:"var(--cream)",padding:"22px 22px 40px",textAlign:"center"}}>
+      <div style={{fontSize:13.5,color:"#6f6353"}}>Scan kode di bawah dengan aplikasi e-wallet / m-banking kamu</div>
+      <div style={{background:"#fff",borderRadius:24,padding:22,margin:"18px auto 0",maxWidth:280,border:"1px solid var(--cream-200)",boxShadow:"var(--shadow-md)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <span className="brand" style={{fontWeight:800,fontSize:20,color:"var(--green-800)"}}>Warbul</span>
+          <span style={{fontWeight:800,fontSize:13,color:"#fff",background:"var(--green-800)",padding:"4px 9px",borderRadius:6}}>QRIS</span>
+        </div>
+        <QRCode/>
+        <div style={{marginTop:14,fontSize:12,color:"#8b7f6c"}}>Total Pembayaran</div>
+        <div className="price" style={{fontSize:26,color:"var(--coffee)"}}>{rp(order.total)}</div>
+      </div>
+      <button onClick={()=>{W.updateOrder(order.id,{note:"Menunggu verifikasi kasir"});setShowQR(false);}} className="btn btn-green" style={{marginTop:24,width:"100%",maxWidth:280,borderRadius:15,padding:"15px",fontSize:14.5}}>Saya Sudah Bayar</button>
+      <div style={{fontSize:12,color:"#8b7f6c",marginTop:12,maxWidth:280,margin:"12px auto 0"}}>Kasir akan memverifikasi pembayaranmu sebentar lagi.</div>
+    </div>
+  </>);}
+
+  const done=order.status===W.STATUS.DONE;
+  return(<>
+    <div style={{background:done?"var(--green-ok)":"var(--green-800)",flex:"0 0 auto",transition:".3s"}}>
+      <div style={{padding:"20px 22px 26px",color:"var(--cream)",textAlign:"center"}}>
+        <div style={{width:64,height:64,borderRadius:50,background:"rgba(255,255,255,.14)",display:"grid",placeItems:"center",margin:"0 auto 14px",animation:"pop .4s"}}>
+          {done?<span style={{color:"#fff"}}>{Ico.check()}</span>:<span style={{color:"var(--gold)"}}><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/><path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg></span>}
+        </div>
+        <div className="brand" style={{fontSize:23,fontWeight:700}}>{done?"Pesanan Selesai!":"Pesanan Diterima"}</div>
+        <div style={{fontSize:13,opacity:.85,marginTop:4}}>{order.id} · Meja {String(order.table).padStart(2,"0")}</div>
+      </div>
+    </div>
+    <div className="body" style={{background:"var(--cream)"}}>
+      <div style={{padding:"20px 22px 8px"}}>
+        {order.method==="qris"&&!order.paid&&<div onClick={()=>setShowQR(true)} style={{display:"flex",alignItems:"center",gap:11,background:"var(--gold)",color:"var(--coffee-900)",borderRadius:14,padding:"12px 15px",marginBottom:18,cursor:"pointer",fontWeight:700,fontSize:13.5}}>
+          <span>⚠︎</span> Belum bayar? Tap untuk buka QRIS lagi <span style={{marginLeft:"auto"}}>→</span></div>}
+        <div style={{position:"relative",paddingLeft:6}}>
+          {steps.map((s,i)=>{const reached=i<=order_idx;const current=i===order_idx;return(
+            <div key={s.key} style={{display:"flex",gap:15,position:"relative",paddingBottom:i<steps.length-1?24:0}}>
+              {i<steps.length-1&&<div style={{position:"absolute",left:14,top:30,bottom:0,width:3,background:i<order_idx?"var(--green-700)":"var(--cream-300)"}}></div>}
+              <div className="step" style={{flex:"0 0 auto",background:reached?"var(--green-700)":"#fff",color:reached?"#fff":"var(--cream-400)",border:"2px solid "+(reached?"var(--green-700)":"var(--cream-300)"),zIndex:2,boxShadow:current?"0 0 0 5px rgba(62,92,70,.18)":"none"}}>
+                {reached?"✓":i+1}</div>
+              <div style={{paddingTop:3}}>
+                <div style={{fontWeight:700,fontSize:14.5,color:reached?"var(--ink)":"#a99c86"}}>{s.label}</div>
+                {current&&<div style={{fontSize:12.5,color:"var(--green-700)",fontWeight:600,marginTop:2}}>{order.note||"Sedang diproses…"}</div>}
+              </div>
+            </div>);})}
+        </div>
+      </div>
+      {member&&<div style={{padding:"6px 22px 0"}}><StampCard member={member}/></div>}
+      <div style={{padding:"18px 22px 40px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <div style={{fontSize:12,fontWeight:800,letterSpacing:".06em",color:"#8b7f6c"}}>RINCIAN PESANAN</div>
+          <button onClick={()=>setReceipt(true)} style={{display:"flex",alignItems:"center",gap:6,background:"none",border:"none",color:"var(--green-700)",fontWeight:700,fontSize:12.5,cursor:"pointer"}}>{Ico.print()} Struk</button>
+        </div>
+        <div style={{background:"#fff",borderRadius:18,padding:"15px 17px",border:"1px solid var(--cream-200)"}}>
+          {order.items.map((it,i)=>(<div key={i} style={{display:"flex",justifyContent:"space-between",padding:"5px 0",fontSize:13.5}}>
+            <span style={{flex:1,minWidth:0}}><span className="num" style={{color:"var(--green-700)"}}>{it.qty}×</span> {it.name}<OptsLine opts={it.opts}/></span><span className="price">{rp(it.price*it.qty)}</span></div>))}
+          <div style={{height:1,background:"var(--line)",margin:"11px 0"}}></div>
+          <Row k="Subtotal" v={rp(order.subtotal!=null?order.subtotal:order.total)}/>
+          {order.discount>0&&<Row k={"Diskon"+(order.promo?" ("+order.promo.code+")":"")} v={"−"+rp(order.discount)} accent="var(--green-ok)"/>}
+          <Row k="Biaya layanan" v={rp(order.service!=null?order.service:fee)}/>
+          <Row k="Metode" v={order.method==="qris"?"QRIS":"Bayar di Kasir"}/>
+          <div style={{height:1,background:"var(--line)",margin:"11px 0"}}></div>
+          <Row k="Total" v={rp(order.total)} big/>
+        </div>
+        <button onClick={()=>{setOrderId(null);setView("menu");}} style={{width:"100%",marginTop:16,background:"none",border:"1.5px solid var(--green-700)",color:"var(--green-700)",borderRadius:14,padding:"13px",fontWeight:700,fontSize:14,cursor:"pointer"}}>Pesan Lagi</button>
+      </div>
+    </div>
+    {receipt&&<ReceiptOverlay order={order} onClose={()=>setReceipt(false)}/>}
+  </>);
+}
+
+function StampCard({member}){
+  return(<div style={{background:"var(--green-800)",borderRadius:18,padding:"15px 17px",color:"var(--cream)",position:"relative",overflow:"hidden"}}>
+    <div style={{position:"absolute",right:-10,top:-12,opacity:.12}}><Bean c="var(--gold)" s={90}/></div>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <div><div style={{fontSize:11,opacity:.7,fontWeight:600}}>KARTU STEMPEL WARBUL</div><div className="brand" style={{fontSize:16,fontWeight:700,color:"var(--gold)"}}>{member.points} poin</div></div>
+      <div style={{fontSize:12,fontWeight:700}}>{member.stamps}/10</div>
+    </div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(10,1fr)",gap:5,marginTop:12,position:"relative"}}>
+      {Array.from({length:10},(_,i)=>(<div key={i} style={{aspectRatio:"1",borderRadius:50,display:"grid",placeItems:"center",
+        background:i<member.stamps?"var(--gold)":"rgba(255,255,255,.1)",color:"var(--coffee-900)"}}>{i<member.stamps?<Bean c="var(--coffee-900)" s={13}/>:null}</div>))}
+    </div>
+    <div style={{fontSize:11,opacity:.75,marginTop:10}}>Kumpulkan 10 stempel untuk 1 minuman gratis ✦</div>
+  </div>);
+}
+
+/* ============================ RECEIPT ============================ */
+function ReceiptOverlay({order,onClose}){
+  return(<div className="sheet-wrap" style={{justifyContent:"center",alignItems:"center",padding:18}}>
+    <div className="sheet-bd" onClick={onClose}></div>
+    <div style={{position:"relative",width:"100%",maxWidth:300,maxHeight:"90%",display:"flex",flexDirection:"column"}}>
+      <div id="rcpt" className="receipt" style={{background:"#fff",borderRadius:14,padding:"22px 20px",overflowY:"auto",boxShadow:"var(--shadow-lg)"}}>
+        <div style={{textAlign:"center"}}>
+          <img src="assets/warbul-logo.png" width="46" height="46" style={{borderRadius:"50%",display:"inline-block"}}/>
+          <div className="brand" style={{fontSize:20,fontWeight:800,color:"var(--green-900)",marginTop:4}}>Warbul Coffee</div>
+          <div style={{fontSize:11,color:"#8b7f6c"}}>Jl. Dipatiukur No. 42, Bandung</div>
+        </div>
+        <hr className="dash"/>
+        <div style={{fontSize:12,color:"#5b5145",display:"flex",justifyContent:"space-between"}}><span>{order.id}</span><span>Meja {String(order.table).padStart(2,"0")}</span></div>
+        <div style={{fontSize:12,color:"#8b7f6c",marginTop:2}}>{new Date(order.createdAt).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})}</div>
+        <hr className="dash"/>
+        {order.items.map((it,i)=>(<div key={i} style={{marginBottom:7}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,fontWeight:600}}><span>{it.qty}× {it.name}</span><span className="price">{rp(it.price*it.qty)}</span></div>
+          {it.opts&&it.opts.length>0&&<div style={{fontSize:11,color:"#8b7f6c",paddingLeft:14}}>{it.opts.join(", ")}</div>}
+        </div>))}
+        <hr className="dash"/>
+        <RcptRow k="Subtotal" v={rp(order.subtotal!=null?order.subtotal:order.total)}/>
+        {order.discount>0&&<RcptRow k={"Diskon"+(order.promo?" "+order.promo.code:"")} v={"−"+rp(order.discount)}/>}
+        <RcptRow k="Biaya layanan" v={rp(order.service!=null?order.service:fee)}/>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontWeight:800,fontSize:14}}><span>TOTAL</span><span className="price" style={{color:"var(--coffee)"}}>{rp(order.total)}</span></div>
+        <RcptRow k="Metode" v={order.method==="qris"?"QRIS":(order.payDetail||"Kasir")}/>
+        <hr className="dash"/>
+        <div style={{textAlign:"center",fontSize:11.5,color:"#8b7f6c",lineHeight:1.6}}>Terima kasih sudah ngopi di Warbul ☕<br/>Simpan struk ini sebagai bukti pembayaran</div>
+        <div style={{textAlign:"center",marginTop:10,opacity:.5}}><Bean c="#21342A" s={20}/></div>
+      </div>
+      <div className="rcpt-actions" style={{display:"flex",gap:10,marginTop:12}}>
+        <button onClick={onClose} style={{flex:1,background:"#fff",border:"1.5px solid var(--line)",borderRadius:13,padding:"13px",fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"inherit"}}>Tutup</button>
+        <button onClick={()=>window.print()} className="btn btn-green" style={{flex:1.4,borderRadius:13,padding:"13px",fontSize:14,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{Ico.print()} Cetak Struk</button>
+      </div>
+    </div>
+  </div>);
+}
+const RcptRow=({k,v})=>(<div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,color:"#5b5145",padding:"2px 0"}}><span>{k}</span><span className="price">{v}</span></div>);
+
+/* deterministic QR-looking grid (decorative placeholder) */
+function QRCode(){
+  const n=21; const cells=[];
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    const finder=(x<7&&y<7)||(x>n-8&&y<7)||(x<7&&y>n-8);
+    const on=finder?((x===0||x===6||y===0||y===6||(x>=2&&x<=4&&y>=2&&y<=4))?true:((x<7&&y<7)||(x>n-8&&y<7)||(x<7&&y>n-8))&&((x%6===0)||(y%6===0))):((x*7+y*13+x*y)%3===0);
+    if(on)cells.push(<rect key={x+'-'+y} x={x} y={y} width="1" height="1" fill="#21342A"/>);
+  }
+  return(<svg viewBox={`0 0 ${n} ${n}`} width="180" height="180" style={{display:"block",margin:"0 auto"}} shapeRendering="crispEdges"><rect width={n} height={n} fill="#fff"/>{cells}</svg>);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

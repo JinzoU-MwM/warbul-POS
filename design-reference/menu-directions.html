@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warbul — Arah Desain Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --green-900:#21342A; --green-800:#2A4032; --green-700:#34503D; --green-600:#3E5C46;
+    --cream:#F4EDD9; --cream-200:#EBE0C4; --cream-300:#E0D2B0;
+    --gold:#F0BE48; --gold-600:#E0A431; --orange:#DD8A3E; --orange-600:#C9762C;
+    --coffee:#5C3D24; --coffee-900:#3A2618; --ink:#2A2018;
+    --paper:#FBF7EC;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#cdb89a;font-family:'Plus Jakarta Sans',sans-serif;}
+  /* ---------- phone shell ---------- */
+  .phone{width:330px;height:690px;background:var(--cream);border-radius:30px;
+    overflow:hidden;position:relative;display:flex;flex-direction:column;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);font-size:14px;color:var(--ink);}
+  .statusbar{height:30px;display:flex;align-items:center;justify-content:space-between;
+    padding:0 18px;font-size:11px;font-weight:700;flex:0 0 auto;}
+  .statusbar .dots{display:flex;gap:4px;align-items:center}
+  .scroll{flex:1;overflow:hidden;position:relative}
+  .brand{font-family:'Baloo 2',cursive;}
+  /* generic */
+  .price{font-family:'Baloo 2',cursive;font-weight:700;}
+  .chip{font-weight:700;font-size:12px;border-radius:999px;padding:7px 14px;white-space:nowrap;}
+  .add-btn{display:grid;place-items:center;font-weight:800;border:none;cursor:pointer;}
+  .tile{position:relative;overflow:hidden;}
+  .tile .glyph{position:absolute;inset:0;display:grid;place-items:center;opacity:.9}
+  .tile .tag{position:absolute;top:7px;left:7px;font-size:9px;font-weight:800;
+    padding:3px 7px;border-radius:999px;letter-spacing:.02em}
+  .table-pill{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:11px}
+  /* cart bar */
+  .cartbar{position:absolute;left:14px;right:14px;bottom:14px;border-radius:18px;
+    display:flex;align-items:center;justify-content:space-between;padding:12px 14px;
+    box-shadow:0 12px 28px -8px rgba(33,52,42,.45);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel">
+// menu-directions — three directions for the Warbul customer menu screen
+const { useState } = React;
+
+/* ---------- tiny SVG glyphs (placeholder food art) ---------- */
+const CupGlyph = ({c="#fff",s=46}) => (
+  <svg width={s} height={s} viewBox="0 0 48 48" fill="none">
+    <path d="M9 16h26v11a9 9 0 0 1-9 9H18a9 9 0 0 1-9-9V16Z" stroke={c} strokeWidth="2.4"/>
+    <path d="M35 19h4a4 4 0 0 1 0 8h-4" stroke={c} strokeWidth="2.4"/>
+    <path d="M16 7c-1.5 2 1.5 3 0 5M23 7c-1.5 2 1.5 3 0 5" stroke={c} strokeWidth="2.2" strokeLinecap="round" opacity=".8"/>
+  </svg>
+);
+const BeanGlyph = ({c="#fff",s=46}) => (
+  <svg width={s} height={s} viewBox="0 0 48 48" fill="none">
+    <ellipse cx="24" cy="24" rx="13" ry="17" stroke={c} strokeWidth="2.4"/>
+    <path d="M24 8c-5 6-5 26 0 32M19 11c4 4 4 22 0 26" stroke={c} strokeWidth="2.2" opacity=".85"/>
+  </svg>
+);
+const BowlGlyph = ({c="#fff",s=46}) => (
+  <svg width={s} height={s} viewBox="0 0 48 48" fill="none">
+    <path d="M8 22h32a16 16 0 0 1-16 16A16 16 0 0 1 8 22Z" stroke={c} strokeWidth="2.4"/>
+    <path d="M16 22c0-7 16-7 16 0M20 9c-1 2 1 3 0 5M27 9c-1 2 1 3 0 5" stroke={c} strokeWidth="2.2" strokeLinecap="round"/>
+  </svg>
+);
+const FriesGlyph = ({c="#fff",s=46}) => (
+  <svg width={s} height={s} viewBox="0 0 48 48" fill="none">
+    <path d="M13 22h22l-2 16H15l-2-16Z" stroke={c} strokeWidth="2.4"/>
+    <path d="M17 22l-1-11M22 22V9M27 22l1-12M32 22l2-9" stroke={c} strokeWidth="2.2" strokeLinecap="round"/>
+  </svg>
+);
+const GLYPH = { cup:CupGlyph, bean:BeanGlyph, bowl:BowlGlyph, fries:FriesGlyph };
+
+/* ---------- menu data ---------- */
+const CATS = ["Semua","Kopi","Non-Kopi","Makanan","Snack"];
+const ITEMS = [
+  {n:"Es Kopi Susu Warbul", c:"Kopi", p:18000, g:"cup",  grad:["#6F4A2C","#3C2618"], tag:"Best Seller"},
+  {n:"Caramel Macchiato",   c:"Kopi", p:28000, g:"cup",  grad:["#A9743F","#6B4423"]},
+  {n:"Matcha Latte",        c:"Non-Kopi", p:26000, g:"cup", grad:["#5E7B47","#36502C"]},
+  {n:"Nasi Goreng Warbul",  c:"Makanan", p:28000, g:"bowl", grad:["#C9762C","#8A4D1C"], tag:"Spesial"},
+  {n:"Kentang Goreng",      c:"Snack", p:18000, g:"fries", grad:["#E0A431","#B97A1E"]},
+  {n:"Pisang Goreng",       c:"Snack", p:15000, g:"fries", grad:["#C98A3C","#915C1E"]},
+];
+const rp = n => "Rp" + n.toLocaleString("id-ID");
+
+/* DIRECTION A — Cozy Classic */
+function DirA(){
+  const [cat,setCat]=useState("Semua");
+  const list = ITEMS.filter(i=>cat==="Semua"||i.c===cat);
+  return (
+    <div className="phone">
+      <div className="statusbar" style={{background:"var(--green-800)",color:"var(--cream)"}}>
+        <span>9:41</span><span className="dots">●●● Warbul</span>
+      </div>
+      <div style={{background:"var(--green-800)",padding:"6px 18px 18px",color:"var(--cream)"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <div className="brand" style={{fontSize:24,fontWeight:800,lineHeight:1,color:"var(--gold)"}}>Warbul</div>
+            <div style={{fontSize:11,opacity:.8,marginTop:2}}>Selamat datang ☕</div>
+          </div>
+          <div className="table-pill" style={{background:"rgba(255,255,255,.12)",padding:"7px 11px",borderRadius:12}}>
+            <span style={{width:7,height:7,borderRadius:9,background:"var(--gold)"}}></span> Meja 07
+          </div>
+        </div>
+      </div>
+      <div className="scroll" style={{background:"var(--cream)"}}>
+        <div style={{padding:"14px 18px 4px"}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,background:"#fff",border:"1px solid var(--cream-300)",
+            borderRadius:14,padding:"10px 14px",color:"#9b8e76",fontSize:13}}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#b6a98e" strokeWidth="2"/><path d="m20 20-3-3" stroke="#b6a98e" strokeWidth="2"/></svg>
+            Cari menu favoritmu…
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,overflow:"hidden",padding:"12px 18px 6px"}}>
+          {CATS.map(c=>(
+            <div key={c} className="chip" onClick={()=>setCat(c)} style={{cursor:"pointer",
+              background:cat===c?"var(--green-700)":"#fff",color:cat===c?"var(--cream)":"var(--green-700)",
+              border:"1px solid "+(cat===c?"var(--green-700)":"var(--cream-300)")}}>{c}</div>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,padding:"10px 18px 90px"}}>
+          {list.map(it=>{const G=GLYPH[it.g];return(
+            <div key={it.n} style={{background:"#fff",borderRadius:18,overflow:"hidden",border:"1px solid var(--cream-200)",
+              boxShadow:"0 8px 18px -12px rgba(58,38,24,.4)"}}>
+              <div className="tile" style={{height:84,background:`linear-gradient(135deg,${it.grad[0]},${it.grad[1]})`}}>
+                {it.tag&&<span className="tag" style={{background:"var(--gold)",color:"var(--coffee-900)"}}>{it.tag}</span>}
+                <div className="glyph"><G c="rgba(255,255,255,.85)" s={40}/></div>
+              </div>
+              <div style={{padding:"9px 11px 11px"}}>
+                <div style={{fontWeight:700,fontSize:12.5,lineHeight:1.2,minHeight:30}}>{it.n}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:6}}>
+                  <span className="price" style={{color:"var(--coffee)",fontSize:15}}>{rp(it.p)}</span>
+                  <button className="add-btn" style={{width:26,height:26,borderRadius:9,background:"var(--green-700)",color:"#fff",fontSize:16}}>+</button>
+                </div>
+              </div>
+            </div>
+          )})}
+        </div>
+        <div className="cartbar" style={{background:"var(--green-800)",color:"var(--cream)"}}>
+          <div><div style={{fontSize:10,opacity:.7}}>3 item</div><div className="price" style={{fontSize:16,color:"var(--gold)"}}>Rp64.000</div></div>
+          <div style={{display:"flex",alignItems:"center",gap:7,background:"var(--gold)",color:"var(--coffee-900)",fontWeight:800,fontSize:13,padding:"9px 15px",borderRadius:12}}>Keranjang →</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* DIRECTION B — Appetite Bold */
+function DirB(){
+  const featured = ITEMS[0];
+  const list = ITEMS.slice(1,5);
+  return (
+    <div className="phone" style={{background:"var(--green-900)"}}>
+      <div className="statusbar" style={{color:"var(--cream)"}}>
+        <span>9:41</span><span className="dots">●●● Warbul</span>
+      </div>
+      <div className="scroll">
+        <div style={{padding:"4px 18px 0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div className="brand" style={{fontSize:22,fontWeight:800,color:"var(--gold)"}}>Warbul</div>
+          <div className="table-pill" style={{background:"var(--gold)",color:"var(--coffee-900)",padding:"6px 11px",borderRadius:999}}>Meja 07</div>
+        </div>
+        <div style={{padding:"14px 18px 0",color:"var(--cream)"}}>
+          <div style={{fontSize:13,opacity:.65}}>Mau ngopi apa hari ini?</div>
+          <div className="brand" style={{fontSize:26,fontWeight:700,lineHeight:1.05,marginTop:2}}>Pilih yang<br/>bikin nagih.</div>
+        </div>
+        <div style={{padding:"14px 18px 0"}}>
+          <div className="tile" style={{height:130,borderRadius:20,background:`linear-gradient(120deg,${featured.grad[0]},${featured.grad[1]})`,
+            display:"flex",alignItems:"flex-end",padding:14,boxShadow:"0 18px 30px -14px rgba(0,0,0,.6)"}}>
+            <div className="glyph" style={{justifyContent:"flex-end",paddingRight:18,opacity:.35}}><CupGlyph c="#fff" s={90}/></div>
+            <span className="tag" style={{background:"var(--gold)",color:"var(--coffee-900)"}}>★ Best Seller</span>
+            <div style={{position:"relative",color:"#fff"}}>
+              <div style={{fontWeight:800,fontSize:16}}>{featured.n}</div>
+              <div className="price" style={{fontSize:18,color:"var(--gold)"}}>{rp(featured.p)}</div>
+            </div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,padding:"16px 18px 4px",overflow:"hidden"}}>
+          {CATS.slice(0,4).map((c,i)=>(
+            <div key={c} className="chip" style={{background:i===0?"var(--gold)":"rgba(255,255,255,.08)",
+              color:i===0?"var(--coffee-900)":"var(--cream)"}}>{c}</div>
+          ))}
+        </div>
+        <div style={{padding:"8px 18px 96px",display:"flex",flexDirection:"column",gap:10}}>
+          {list.map(it=>{const G=GLYPH[it.g];return(
+            <div key={it.n} style={{display:"flex",gap:12,alignItems:"center",background:"rgba(255,255,255,.05)",
+              border:"1px solid rgba(255,255,255,.08)",borderRadius:16,padding:9}}>
+              <div className="tile" style={{width:58,height:58,borderRadius:13,flex:"0 0 auto",
+                background:`linear-gradient(135deg,${it.grad[0]},${it.grad[1]})`}}>
+                <div className="glyph"><G c="rgba(255,255,255,.85)" s={30}/></div>
+              </div>
+              <div style={{flex:1,color:"var(--cream)"}}>
+                <div style={{fontWeight:700,fontSize:13.5}}>{it.n}</div>
+                <div className="price" style={{fontSize:15,color:"var(--gold)",marginTop:3}}>{rp(it.p)}</div>
+              </div>
+              <button className="add-btn" style={{width:32,height:32,borderRadius:11,background:"var(--gold)",color:"var(--coffee-900)",fontSize:19}}>+</button>
+            </div>
+          )})}
+        </div>
+        <div className="cartbar" style={{background:"var(--gold)",color:"var(--coffee-900)"}}>
+          <div><div style={{fontSize:10,opacity:.7,fontWeight:700}}>3 item · Meja 07</div><div className="price" style={{fontSize:16}}>Rp64.000</div></div>
+          <div style={{display:"flex",alignItems:"center",gap:7,background:"var(--green-900)",color:"var(--gold)",fontWeight:800,fontSize:13,padding:"10px 16px",borderRadius:13}}>Pesan →</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* DIRECTION C — Playful Warbul */
+function FaceBadge({s=44}){
+  return (
+    <svg width={s} height={s} viewBox="0 0 60 60" fill="none">
+      <circle cx="30" cy="30" r="27" fill="#F0BE48" stroke="#21342A" strokeWidth="3"/>
+      <ellipse cx="22" cy="27" rx="6" ry="7" fill="#fff" stroke="#21342A" strokeWidth="2.5"/>
+      <ellipse cx="38" cy="27" rx="6" ry="7" fill="#fff" stroke="#21342A" strokeWidth="2.5"/>
+      <circle cx="22.5" cy="28" r="2.4" fill="#21342A"/><circle cx="37.5" cy="28" r="2.4" fill="#21342A"/>
+      <path d="M14 21c3-3 9-3 11 1M46 21c-3-3-9-3-11 1" stroke="#21342A" strokeWidth="3" strokeLinecap="round"/>
+      <path d="M22 41c3 3 13 3 16 0c-3 2-5 2-8 2s-5 0-8-2Z" fill="#3A2618" stroke="#3A2618" strokeWidth="2" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+function DirC(){
+  const list = ITEMS.slice(0,4);
+  return (
+    <div className="phone" style={{background:"var(--paper)"}}>
+      <div className="statusbar" style={{color:"var(--green-900)"}}>
+        <span>9:41</span><span className="dots">●●● Warbul</span>
+      </div>
+      <div className="scroll">
+        <div style={{margin:"6px 14px 0",background:"var(--green-800)",borderRadius:24,padding:"16px 16px 18px",
+          position:"relative",overflow:"hidden",color:"var(--cream)"}}>
+          <div style={{position:"absolute",right:-14,top:-10,opacity:.18}}><BeanGlyph c="var(--gold)" s={120}/></div>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <FaceBadge s={42}/>
+            <div>
+              <div className="brand" style={{fontSize:23,fontWeight:800,color:"var(--gold)",lineHeight:1}}>Warbul</div>
+              <div style={{fontSize:11,opacity:.85}}>Ngopi santai, pesan sendiri ✦</div>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,marginTop:14}}>
+            <div style={{flex:1,background:"var(--gold)",color:"var(--coffee-900)",borderRadius:14,padding:"8px 12px"}}>
+              <div style={{fontSize:9,fontWeight:700,opacity:.7}}>KAMU DI</div>
+              <div className="brand" style={{fontSize:17,fontWeight:800}}>Meja 07</div>
+            </div>
+            <div style={{flex:1.6,background:"rgba(255,255,255,.1)",borderRadius:14,padding:"8px 12px",
+              display:"flex",alignItems:"center",color:"var(--cream)",fontSize:12,fontWeight:600}}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{marginRight:7}}><circle cx="11" cy="11" r="7" stroke="var(--cream)" strokeWidth="2"/><path d="m20 20-3-3" stroke="var(--cream)" strokeWidth="2"/></svg>
+              Cari menu…
+            </div>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:8,padding:"14px 14px 4px",overflow:"hidden"}}>
+          {CATS.map((c,i)=>(
+            <div key={c} className="chip" style={{background:i===0?"var(--orange)":"#fff",
+              color:i===0?"#fff":"var(--green-800)",border:"2px solid "+(i===0?"var(--orange-600)":"var(--cream-300)"),
+              boxShadow:i===0?"0 4px 0 var(--orange-600)":"none"}}>{c}</div>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:13,padding:"10px 14px 96px"}}>
+          {list.map((it,idx)=>{const G=GLYPH[it.g];const rot=idx%2?1.2:-1.2;return(
+            <div key={it.n} style={{background:"#fff",borderRadius:20,padding:8,border:"2px solid var(--green-900)",
+              boxShadow:"0 5px 0 var(--green-900)",transform:`rotate(${rot}deg)`}}>
+              <div className="tile" style={{height:78,borderRadius:14,background:`linear-gradient(135deg,${it.grad[0]},${it.grad[1]})`,border:"2px solid var(--green-900)"}}>
+                {it.tag&&<span className="tag" style={{background:"var(--orange)",color:"#fff",border:"1.5px solid #fff",top:6}}>{it.tag}</span>}
+                <div className="glyph"><G c="rgba(255,255,255,.9)" s={38}/></div>
+              </div>
+              <div style={{padding:"8px 4px 2px"}}>
+                <div style={{fontWeight:700,fontSize:12.5,lineHeight:1.15,minHeight:30}}>{it.n}</div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:5}}>
+                  <span className="price" style={{color:"var(--orange-600)",fontSize:15}}>{rp(it.p)}</span>
+                  <button className="add-btn" style={{width:28,height:28,borderRadius:10,background:"var(--green-800)",color:"var(--gold)",fontSize:17,border:"2px solid var(--green-900)"}}>+</button>
+                </div>
+              </div>
+            </div>
+          )})}
+        </div>
+        <div className="cartbar" style={{background:"var(--orange)",color:"#fff",border:"2px solid var(--orange-600)"}}>
+          <div style={{display:"flex",alignItems:"center",gap:9}}>
+            <div style={{width:34,height:34,borderRadius:11,background:"#fff",color:"var(--orange-600)",display:"grid",placeItems:"center",fontWeight:800}}>3</div>
+            <div><div style={{fontSize:10,opacity:.85,fontWeight:700}}>Keranjangmu</div><div className="price" style={{fontSize:16}}>Rp64.000</div></div>
+          </div>
+          <div style={{background:"var(--green-900)",color:"var(--gold)",fontWeight:800,fontSize:13,padding:"10px 16px",borderRadius:13}}>Pesan →</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App(){
+  return (
+    <DesignCanvas>
+      <DCSection id="menu" title="Warbul · Layar Menu Pelanggan" subtitle="Tiga arah desain — pilih satu (atau campur elemennya) dan saya bangun seluruh prototipenya">
+        <DCArtboard id="a" label="A · Cozy Classic — cream, rapi, aman" width={330} height={690}><DirA/></DCArtboard>
+        <DCArtboard id="b" label="B · Appetite Bold — moody, foto besar" width={330} height={690}><DirB/></DCArtboard>
+        <DCArtboard id="c" label="C · Playful Warbul — stiker, penuh karakter" width={330} height={690}><DirC/></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

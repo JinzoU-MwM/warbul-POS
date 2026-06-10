@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warbul — Kasir POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="warbul.css" />
+<style>
+  html,body{margin:0;height:100%}
+  body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);background:var(--paper);height:100vh;overflow:hidden}
+  #root{height:100%}
+  .price{font-family:'Baloo 2',sans-serif;font-weight:700}
+  .pill{font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .navitem{display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:13px;cursor:pointer;font-weight:600;font-size:14.5px;color:var(--cream);transition:.15s;position:relative}
+  .navitem:hover{background:rgba(255,255,255,.07)}
+  .navitem.on{background:var(--gold);color:var(--coffee-900);font-weight:700}
+  .tile{position:relative;overflow:hidden}
+  .tile .glyph{position:absolute;inset:0;display:grid;place-items:center}
+  .card{background:#fff;border:1px solid var(--cream-200);border-radius:18px}
+  .act{border:none;cursor:pointer;font-weight:700;border-radius:13px;font-size:14.5px;font-family:inherit;transition:.15s}
+  .act:active{transform:translateY(1px)}
+  .swatch:hover{filter:brightness(.97)}
+  @keyframes inpop{from{transform:translateY(-8px) scale(.98);opacity:0}}
+  @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(221,138,62,.0)}50%{box-shadow:0 0 0 4px rgba(221,138,62,.25)}}
+  .neworder{animation:inpop .35s ease, glow 2.2s ease 2}
+  .switch{width:42px;height:24px;border-radius:999px;position:relative;cursor:pointer;transition:.2s;flex:0 0 auto}
+  .switch i{position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:9px}
+  .modalbd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:80;animation:fade .18s}
+  @keyframes fade{from{opacity:0}}@keyframes mpop{from{transform:scale(.95);opacity:0}}
+  input,select{font-family:inherit}
+  .receipt .dash{border:none;border-top:1.5px dashed #c9bfa6;margin:9px 0}
+  @media print{
+    body{background:#fff!important}
+    body *{visibility:hidden!important}
+    #rcpt, #rcpt *{visibility:visible!important}
+    #rcpt{position:fixed!important;left:0;top:0;width:80mm;max-width:100%;box-shadow:none!important;border-radius:0!important;overflow:visible!important}
+    .modalbd{position:static!important;background:none!important}
+    .rcpt-actions{display:none!important}
+  }
+  .fld{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14.5px;outline:none;background:#fff}
+  .fld:focus{border-color:var(--green-700)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="warbul.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+const W = window.Warbul;
+const rp = W.rupiah;
+const S = W.STATUS;
+
+/* glyphs */
+const Cup = ({c="#fff",s=40}) => (<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M9 16h26v11a9 9 0 0 1-9 9H18a9 9 0 0 1-9-9V16Z" stroke={c} strokeWidth="2.4"/><path d="M35 19h4a4 4 0 0 1 0 8h-4" stroke={c} strokeWidth="2.4"/><path d="M16 7c-1.5 2 1.5 3 0 5M23 7c-1.5 2 1.5 3 0 5" stroke={c} strokeWidth="2.2" strokeLinecap="round" opacity=".8"/></svg>);
+const Bowl = ({c="#fff",s=40}) => (<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M8 22h32a16 16 0 0 1-16 16A16 16 0 0 1 8 22Z" stroke={c} strokeWidth="2.4"/><path d="M16 22c0-7 16-7 16 0M20 9c-1 2 1 3 0 5M27 9c-1 2 1 3 0 5" stroke={c} strokeWidth="2.2" strokeLinecap="round"/></svg>);
+const Fries = ({c="#fff",s=40}) => (<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M13 22h22l-2 16H15l-2-16Z" stroke={c} strokeWidth="2.4"/><path d="M17 22l-1-11M22 22V9M27 22l1-12M32 22l2-9" stroke={c} strokeWidth="2.2" strokeLinecap="round"/></svg>);
+const GLYPH={cup:Cup,bowl:Bowl,fries:Fries};
+const Tile=({it,size,r})=>{const G=GLYPH[it.g]||Cup;return(<div className="tile" style={{width:size,height:size,borderRadius:r||12,background:`linear-gradient(135deg,${it.grad[0]},${it.grad[1]})`,flex:"0 0 auto"}}><div className="glyph"><G c="rgba(255,255,255,.82)" s={size*0.5}/></div></div>);};
+
+const I={
+  orders:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><path d="M4 5h16M4 12h16M4 19h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  menu:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/></svg>,
+  logout:(p)=><svg width="19" height="19" viewBox="0 0 24 24" fill="none" {...p}><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 12h10M17 9l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  clock:(p)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" {...p}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/><path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  qr:(p)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" {...p}><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2"/><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2"/><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="2"/><path d="M14 14h3v3M21 14v7h-7" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  cash:(p)=><svg width="15" height="15" viewBox="0 0 24 24" fill="none" {...p}><rect x="2.5" y="6" width="19" height="12" rx="2" stroke="currentColor" strokeWidth="2"/><circle cx="12" cy="12" r="2.4" stroke="currentColor" strokeWidth="2"/></svg>,
+  plus:(p)=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" {...p}><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"/></svg>,
+  edit:(p)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" {...p}><path d="M4 20h4l10-10-4-4L4 16v4Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M14 6l4 4" stroke="currentColor" strokeWidth="2"/></svg>,
+  trash:(p)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" {...p}><path d="M5 7h14M10 7V5h4v2M7 7l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  check:(p)=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" {...p}><path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  register:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><path d="M4 9h16v10a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M6 9V5a1 1 0 0 1 1-1h7l3 3v2M8 13h3M8 16h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  printer:(p)=><svg width="18" height="18" viewBox="0 0 24 24" fill="none" {...p}><path d="M7 9V4h10v5M7 18H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2M7 15h10v5H7v-5Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+};
+
+const Logo=({s=40})=>(<img src="assets/warbul-logo.png" alt="Warbul" width={s} height={s} style={{display:"block",borderRadius:"50%"}}/>);
+
+function timeAgo(t){const d=Math.floor((Date.now()-t)/1000);if(d<60)return d+"d lalu";const m=Math.floor(d/60);if(m<60)return m+"m lalu";return Math.floor(m/60)+"j lalu";}
+function clockStr(){return new Date().toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"});}
+
+/* status meta */
+const META={
+  [S.WAIT_PAY]:{label:"Menunggu Bayar",c:"var(--orange-600)",bg:"#F8EAD6"},
+  [S.PAID]:{label:"Dibayar",c:"var(--green-ok)",bg:"var(--green-ok-bg)"},
+  [S.COOKING]:{label:"Diproses",c:"var(--blue)",bg:"#E0EAF0"},
+  [S.DONE]:{label:"Selesai",c:"#6f6353",bg:"#ECE5D5"},
+};
+
+/* ============================ ROOT ============================ */
+function App(){
+  const [authed,setAuthed]=useState(sessionStorage.getItem("warbul_kasir")==="1");
+  if(!authed)return <Login onLogin={()=>{sessionStorage.setItem("warbul_kasir","1");setAuthed(true);}}/>;
+  return <Dashboard onLogout={()=>{sessionStorage.removeItem("warbul_kasir");setAuthed(false);}}/>;
+}
+
+/* ============================ LOGIN ============================ */
+function Login({onLogin}){
+  const [u,setU]=useState("kasir");const [p,setP]=useState("warbul123");const [err,setErr]=useState("");
+  const submit=(e)=>{e.preventDefault();if(u&&p)onLogin();else setErr("Lengkapi username & password");};
+  return(
+    <div style={{height:"100%",display:"grid",gridTemplateColumns:"1.05fr 1fr",background:var_paper()}} className="loginwrap">
+      <div style={{background:"var(--green-800)",position:"relative",overflow:"hidden",display:"flex",flexDirection:"column",justifyContent:"space-between",padding:"54px 56px",color:"var(--cream)"}} className="loginbrand">
+        <div style={{position:"absolute",right:-80,bottom:-80,opacity:.06}}><Cup c="#fff" s={420}/></div>
+        <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
+          <Logo s={52}/><span className="brand" style={{fontSize:28,fontWeight:800,color:"var(--gold)"}}>Warbul</span>
+        </div>
+        <div style={{position:"relative"}}>
+          <div className="brand" style={{fontSize:40,fontWeight:700,lineHeight:1.1,maxWidth:380}}>Kelola pesanan,<br/>secangkir demi secangkir.</div>
+          <p style={{fontSize:15,opacity:.78,maxWidth:360,marginTop:16,lineHeight:1.6}}>Dasbor kasir untuk memproses pesanan self-service pelanggan secara real-time.</p>
+        </div>
+        <div style={{position:"relative",fontSize:13,opacity:.6}}>Point of Sales · Warbul Coffee © 2026</div>
+      </div>
+      <div style={{display:"grid",placeItems:"center",padding:32}}>
+        <form onSubmit={submit} style={{width:"100%",maxWidth:360}}>
+          <div className="brand" style={{fontSize:26,fontWeight:700}}>Masuk ke Kasir</div>
+          <p style={{color:"#8b7f6c",fontSize:14,marginTop:6,marginBottom:26}}>Selamat datang kembali 👋 silakan masuk untuk mulai melayani.</p>
+          <label style={{fontSize:13,fontWeight:700,color:"#6f6353"}}>Username</label>
+          <input className="fld" style={{margin:"7px 0 16px"}} value={u} onChange={e=>setU(e.target.value)} placeholder="kasir"/>
+          <label style={{fontSize:13,fontWeight:700,color:"#6f6353"}}>Password</label>
+          <input className="fld" style={{margin:"7px 0 8px"}} type="password" value={p} onChange={e=>setP(e.target.value)} placeholder="••••••••"/>
+          {err&&<div style={{color:"var(--red)",fontSize:13,fontWeight:600,marginTop:6}}>{err}</div>}
+          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",margin:"16px 0 22px"}}>
+            <label style={{display:"flex",gap:8,alignItems:"center",fontSize:13.5,color:"#6f6353",cursor:"pointer"}}><input type="checkbox" defaultChecked/> Ingat saya</label>
+            <span style={{fontSize:13.5,color:"var(--green-700)",fontWeight:600,cursor:"pointer"}}>Lupa password?</span>
+          </div>
+          <button type="submit" className="act btn-green" style={{width:"100%",padding:"15px"}}>Masuk →</button>
+          <div style={{marginTop:18,fontSize:12.5,color:"#a99c86",textAlign:"center"}}>Demo · gunakan kredensial apa pun untuk masuk</div>
+        </form>
+      </div>
+    </div>
+  );
+}
+function var_paper(){return "var(--paper)";}
+
+/* ============================ DASHBOARD ============================ */
+function Dashboard({onLogout}){
+  const [view,setView]=useState("orders");
+  const [orders,setOrders]=useState(W.getOrders());
+  const [menu,setMenu]=useState(W.getMenu());
+  const [,tick]=useState(0);
+  useEffect(()=>{W.onChange(()=>{setOrders(W.getOrders());setMenu(W.getMenu());});},[]);
+  useEffect(()=>{const iv=setInterval(()=>tick(t=>t+1),1000);return()=>clearInterval(iv);},[]);
+  const activeCount=orders.filter(o=>o.status!==S.DONE).length;
+
+  return(
+    <div style={{height:"100%",display:"flex",background:"var(--paper)"}}>
+      {/* sidebar */}
+      <aside className="sidebar" style={{width:236,background:"var(--green-900)",display:"flex",flexDirection:"column",padding:"22px 16px",flex:"0 0 auto"}}>
+        <div style={{display:"flex",alignItems:"center",gap:12,padding:"4px 8px 22px"}}>
+          <Logo s={40}/><div><div className="brand t-gold" style={{fontSize:21,fontWeight:800,lineHeight:1}}>Warbul</div><div style={{fontSize:10.5,color:"rgba(244,237,217,.6)",fontWeight:600,letterSpacing:".04em"}}>KASIR POS</div></div>
+        </div>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          <div className={"navitem"+(view==="neworder"?" on":"")} onClick={()=>setView("neworder")}>{I.register()}<span>Buat Pesanan</span></div>
+          <div className={"navitem"+(view==="orders"?" on":"")} onClick={()=>setView("orders")}>{I.orders()}<span>Pesanan</span>{activeCount>0&&<span style={{marginLeft:"auto",background:view==="orders"?"var(--coffee-900)":"var(--orange)",color:"#fff",fontSize:11.5,fontWeight:800,minWidth:20,height:20,borderRadius:10,display:"grid",placeItems:"center",padding:"0 5px"}}>{activeCount}</span>}</div>
+          <div className={"navitem"+(view==="menu"?" on":"")} onClick={()=>setView("menu")}>{I.menu()}<span>Manajemen Menu</span></div>
+        </div>
+        <div style={{marginTop:"auto",borderTop:"1px solid rgba(255,255,255,.1)",paddingTop:14}}>
+          <div style={{display:"flex",alignItems:"center",gap:11,padding:"4px 6px 12px"}}>
+            <div style={{width:38,height:38,borderRadius:12,background:"var(--gold)",color:"var(--coffee-900)",display:"grid",placeItems:"center",fontWeight:800,fontSize:15}} className="brand">RA</div>
+            <div style={{lineHeight:1.2}}><div style={{color:"var(--cream)",fontWeight:700,fontSize:13.5}}>Rina A.</div><div style={{color:"rgba(244,237,217,.55)",fontSize:11.5}}>Kasir · Shift Pagi</div></div>
+          </div>
+          <div className="navitem" onClick={onLogout} style={{fontSize:13.5}}>{I.logout()}<span>Keluar</span></div>
+        </div>
+      </aside>
+      {/* main */}
+      <main style={{flex:1,minWidth:0,display:"flex",flexDirection:"column"}}>
+        {view==="orders"&&<Orders orders={orders} onNew={()=>setView("neworder")}/>}
+        {view==="neworder"&&<CashierOrder menu={menu} goOrders={()=>setView("orders")}/>}
+        {view==="menu"&&<MenuAdmin menu={menu}/>}
+      </main>
+    </div>
+  );
+}
+
+/* ============================ ORDERS ============================ */
+function Orders({orders,onNew}){
+  const [sel,setSel]=useState(null);
+  const [filter,setFilter]=useState("active");
+  const filters=[{k:"active",l:"Aktif"},{k:S.WAIT_PAY,l:"Perlu Bayar"},{k:S.COOKING,l:"Diproses"},{k:S.DONE,l:"Selesai"}];
+  let list=orders;
+  if(filter==="active")list=orders.filter(o=>o.status!==S.DONE);
+  else list=orders.filter(o=>o.status===filter);
+  const selected=orders.find(o=>o.id===sel) || list[0] || orders[0];
+  const needPay=orders.filter(o=>o.status===S.WAIT_PAY).length;
+
+  return(
+    <>
+      <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 28px",borderBottom:"1px solid var(--line)",background:"var(--paper-2)"}}>
+        <div>
+          <div className="brand" style={{fontSize:23,fontWeight:700}}>Pesanan Masuk</div>
+          <div style={{fontSize:13,color:"#8b7f6c",marginTop:2}}>{needPay>0?<span style={{color:"var(--orange-600)",fontWeight:700}}>{needPay} pesanan menunggu pembayaran</span>:"Semua pesanan tertangani ✓"}</div>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:14}}>
+          <button onClick={onNew} className="act btn-green" style={{padding:"10px 15px",display:"flex",alignItems:"center",gap:7,fontSize:13.5}}>{I.plus()}Pesanan Baru</button>
+          <span className="pill" style={{background:"var(--green-ok-bg)",color:"var(--green-ok)"}}><span style={{width:8,height:8,borderRadius:9,background:"var(--green-ok)",animation:"glow 1.6s infinite"}}></span>LIVE</span>
+          <span style={{display:"flex",gap:7,alignItems:"center",color:"#6f6353",fontSize:14,fontWeight:600}}>{I.clock()}{clockStr()}</span>
+        </div>
+      </header>
+      <div style={{flex:1,display:"flex",minHeight:0}} className="ordersplit">
+        {/* list */}
+        <div style={{width:374,borderRight:"1px solid var(--line)",display:"flex",flexDirection:"column",minHeight:0}} className="orderlist">
+          <div style={{display:"flex",gap:7,padding:"14px 18px",overflowX:"auto"}}>
+            {filters.map(f=>(<button key={f.k} onClick={()=>setFilter(f.k)} className="act" style={{padding:"7px 13px",fontSize:13,background:filter===f.k?"var(--green-800)":"#fff",color:filter===f.k?"var(--cream)":"var(--green-800)",border:"1.5px solid "+(filter===f.k?"var(--green-800)":"var(--line)"),whiteSpace:"nowrap"}}>{f.l}</button>))}
+          </div>
+          <div style={{flex:1,overflowY:"auto",padding:"2px 16px 18px",display:"flex",flexDirection:"column",gap:11}}>
+            {list.length===0&&<div style={{textAlign:"center",color:"#a99c86",fontSize:14,padding:"50px 20px"}}>Belum ada pesanan di sini.</div>}
+            {list.map(o=>{const m=META[o.status];const isNew=o.status===S.WAIT_PAY&&Date.now()-o.createdAt<12000;return(
+              <div key={o.id} onClick={()=>setSel(o.id)} className={isNew?"neworder":""} style={{cursor:"pointer",borderRadius:16,padding:"14px 15px",background:"#fff",
+                border:"2px solid "+((selected&&selected.id===o.id)?"var(--green-700)":"var(--cream-200)"),boxShadow:"var(--shadow-sm)"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:11}}>
+                    <div style={{width:46,height:46,borderRadius:13,background:"var(--green-800)",color:"var(--gold)",display:"grid",placeItems:"center",lineHeight:1}}>
+                      <div style={{textAlign:"center"}}><div style={{fontSize:9,opacity:.7,fontWeight:700}}>{o.table===0?"BUNGKUS":"MEJA"}</div><div className="brand" style={{fontSize:o.table===0?14:18,fontWeight:800}}>{o.table===0?"TA":String(o.table).padStart(2,"0")}</div></div>
+                    </div>
+                    <div><div style={{fontWeight:800,fontSize:14}}>{o.id}{isNew&&<span style={{marginLeft:7,fontSize:9.5,fontWeight:800,color:"#fff",background:"var(--orange)",padding:"2px 7px",borderRadius:999,verticalAlign:"middle"}}>BARU</span>}</div>
+                    <div style={{fontSize:12,color:"#8b7f6c",marginTop:2}}>{o.items.reduce((a,b)=>a+b.qty,0)} item · {timeAgo(o.createdAt)}</div></div>
+                  </div>
+                  <span className="pill" style={{color:m.c,background:m.bg}}>{m.label}</span>
+                </div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:11,paddingTop:11,borderTop:"1px dashed var(--line)"}}>
+                  <span className="pill" style={{background:"var(--cream)",color:"var(--coffee)"}}>{o.method==="qris"?I.qr():I.cash()}{o.method==="qris"?"QRIS":"Bayar di Kasir"}</span>
+                  <span className="price" style={{fontSize:16,color:"var(--coffee)"}}>{rp(o.total)}</span>
+                </div>
+              </div>);})}
+          </div>
+        </div>
+        {/* detail */}
+        <div style={{flex:1,minWidth:0,overflowY:"auto",background:"var(--paper)"}} className="orderdetail">
+          {selected?<OrderDetail order={selected} key={selected.id}/>:<EmptyDetail/>}
+        </div>
+      </div>
+    </>
+  );
+}
+function EmptyDetail(){return(<div style={{height:"100%",display:"grid",placeItems:"center",color:"#a99c86"}}><div style={{textAlign:"center"}}><div style={{opacity:.3}}><Cup c="var(--green-800)" s={64}/></div><div style={{marginTop:12,fontSize:15,fontWeight:600}}>Pilih pesanan untuk melihat rincian</div></div></div>);}
+
+function OrderDetail({order}){
+  const m=META[order.status];const fee=W.SERVICE_FEE;
+  const [payOpen,setPayOpen]=useState(false);
+  const [receipt,setReceipt]=useState(false);
+  const claimed=order.method==="qris"&&order.note&&order.note.indexOf("verifikasi kasir")>=0;
+  const receive=(how)=>{W.updateOrder(order.id,{paid:true,status:S.COOKING,payDetail:how,note:"Diteruskan ke dapur"});setPayOpen(false);};
+  const finish=()=>W.updateOrder(order.id,{status:S.DONE,note:"Pesanan selesai"});
+  return(
+    <div style={{padding:"24px 28px 40px",maxWidth:620}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:16}}>
+        <div style={{display:"flex",gap:15,alignItems:"center"}}>
+          <div style={{width:64,height:64,borderRadius:17,background:"var(--green-800)",color:"var(--gold)",display:"grid",placeItems:"center"}}>
+            <div style={{textAlign:"center"}}><div style={{fontSize:10,opacity:.7,fontWeight:700}}>{order.table===0?"BUNGKUS":"MEJA"}</div><div className="brand" style={{fontSize:order.table===0?18:26,fontWeight:800,lineHeight:1}}>{order.table===0?"TA":String(order.table).padStart(2,"0")}</div></div>
+          </div>
+          <div><div className="brand" style={{fontSize:22,fontWeight:700}}>{order.id}</div>
+          <div style={{fontSize:13,color:"#8b7f6c",marginTop:2,display:"flex",gap:8,alignItems:"center"}}>{I.clock()}{new Date(order.createdAt).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})} · {timeAgo(order.createdAt)}</div></div>
+        </div>
+        <span className="pill" style={{color:m.c,background:m.bg,fontSize:13,padding:"6px 13px"}}>{m.label}</span>
+      </div>
+
+      {claimed&&order.status===S.WAIT_PAY&&<div style={{display:"flex",gap:11,alignItems:"center",background:"#F8EAD6",border:"1px solid #ECCF9E",borderRadius:14,padding:"13px 15px",marginTop:20,color:"var(--orange-600)",fontWeight:600,fontSize:13.5}}>
+        <span style={{fontSize:18}}>🔔</span> Pelanggan menyatakan sudah membayar via QRIS. Mohon cek mutasi lalu verifikasi.</div>}
+
+      <div className="card" style={{marginTop:20,padding:"6px 18px"}}>
+        {order.items.map((it,i)=>(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:14,padding:"13px 0",borderBottom:i<order.items.length-1?"1px solid var(--line)":"none"}}>
+          <span className="brand" style={{fontSize:15,fontWeight:800,color:"var(--green-700)",minWidth:30,paddingTop:1}}>{it.qty}×</span>
+          <div style={{flex:1}}><div style={{fontWeight:600,fontSize:14.5}}>{it.name}</div>{it.opts&&it.opts.length>0&&<div style={{fontSize:12,color:"#8b7f6c",marginTop:2}}>{it.opts.join(" · ")}</div>}</div>
+          <span style={{color:"#8b7f6c",fontSize:13.5,paddingTop:1}}>{rp(it.price)}</span>
+          <span className="price" style={{fontSize:15,minWidth:80,textAlign:"right",paddingTop:1}}>{rp(it.price*it.qty)}</span>
+        </div>))}
+      </div>
+      <div className="card" style={{marginTop:14,padding:"15px 18px"}}>
+        <Line k="Subtotal" v={rp(order.subtotal!=null?order.subtotal:order.total)}/>
+        {order.discount>0&&<Line k={"Diskon"+(order.promo?" ("+order.promo.code+")":"")} v={"−"+rp(order.discount)}/>}
+        <Line k="Biaya layanan" v={rp(order.service!=null?order.service:fee)}/>
+        <Line k={"Metode · "+(order.method==="qris"?"QRIS":"Bayar di Kasir")} v={order.payDetail?order.payDetail:(order.paid?"Lunas":"Belum bayar")}/>
+        <div style={{height:1,background:"var(--line)",margin:"11px 0"}}></div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontWeight:700,fontSize:16}}>Total</span><span className="price" style={{fontSize:24,color:"var(--coffee)"}}>{rp(order.total)}</span></div>
+      </div>
+
+      {/* actions */}
+      <div style={{marginTop:22}}>
+        {order.status===S.WAIT_PAY&&<>
+          {!payOpen?
+            <button onClick={()=>order.method==="qris"?receive("QRIS terverifikasi"):setPayOpen(true)} className="act btn-gold" style={{width:"100%",padding:"16px",fontSize:15.5,display:"flex",alignItems:"center",justifyContent:"center",gap:9}}>
+              {I.check()}{order.method==="qris"?"Verifikasi Pembayaran QRIS":"Terima Pembayaran"}</button>
+            :<div className="card" style={{padding:18,border:"2px solid var(--green-700)"}}>
+              <div style={{fontWeight:700,fontSize:14.5,marginBottom:12}}>Tagih {rp(order.total)} — pilih metode:</div>
+              <div style={{display:"flex",gap:11}}>
+                <button onClick={()=>receive("Tunai")} className="act btn-green" style={{flex:1,padding:"14px"}}>💵 Tunai</button>
+                <button onClick={()=>receive("Kartu / Debit")} className="act" style={{flex:1,padding:"14px",background:"var(--cream)",color:"var(--green-800)",border:"1.5px solid var(--green-700)"}}>💳 Kartu</button>
+              </div>
+              <button onClick={()=>setPayOpen(false)} style={{width:"100%",marginTop:10,background:"none",border:"none",color:"#8b7f6c",fontSize:13,cursor:"pointer",fontWeight:600}}>Batal</button>
+            </div>}
+        </>}
+        {order.status===S.COOKING&&<button onClick={finish} className="act btn-gold" style={{width:"100%",padding:"16px",fontSize:15.5,display:"flex",alignItems:"center",justifyContent:"center",gap:9}}>{I.check()}Tandai Pesanan Selesai</button>}
+        {order.status===S.PAID&&<button onClick={()=>W.updateOrder(order.id,{status:S.COOKING})} className="act btn-gold" style={{width:"100%",padding:"16px",fontSize:15.5}}>Proses ke Dapur</button>}
+        {order.status===S.DONE&&<div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10,padding:"16px",borderRadius:13,background:"var(--green-ok-bg)",color:"var(--green-ok)",fontWeight:700,fontSize:15}}>{I.check()}Pesanan telah selesai</div>}
+        <button onClick={()=>setReceipt(true)} className="act" style={{width:"100%",marginTop:12,padding:"14px",background:"#fff",color:"var(--green-800)",border:"1.5px solid var(--green-700)",display:"flex",alignItems:"center",justifyContent:"center",gap:9}}>{I.printer()}Cetak Struk</button>
+      </div>
+      {receipt&&<ReceiptOverlay order={order} onClose={()=>setReceipt(false)}/>}
+    </div>
+  );
+}
+const Line=({k,v})=>(<div style={{display:"flex",justifyContent:"space-between",padding:"4px 0",fontSize:13.5}}><span style={{color:"#6f6353"}}>{k}</span><span style={{fontWeight:600}}>{v}</span></div>);
+
+/* ============================ RECEIPT ============================ */
+function ReceiptOverlay({order,onClose}){
+  const fee=W.SERVICE_FEE;
+  const RR=({k,v})=>(<div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,color:"#5b5145",padding:"2px 0"}}><span>{k}</span><span className="price">{v}</span></div>);
+  return(<div className="modalbd" onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{width:330,maxWidth:"92vw",maxHeight:"92vh",display:"flex",flexDirection:"column",animation:"mpop .2s"}}>
+    <div id="rcpt" className="receipt" style={{background:"#fff",borderRadius:14,padding:"24px 22px",overflowY:"auto"}}>
+      <div style={{textAlign:"center"}}>
+        <img src="assets/warbul-logo.png" width="50" height="50" style={{borderRadius:"50%",display:"inline-block"}}/>
+        <div className="brand" style={{fontSize:21,fontWeight:800,color:"var(--green-900)",marginTop:4}}>Warbul Coffee</div>
+        <div style={{fontSize:11,color:"#8b7f6c"}}>Jl. Dipatiukur No. 42, Bandung · 0812-3456-7890</div>
+      </div>
+      <hr className="dash"/>
+      <div style={{fontSize:12,color:"#5b5145",display:"flex",justifyContent:"space-between"}}><span>{order.id}</span><span>{order.table===0?"Bawa Pulang":"Meja "+String(order.table).padStart(2,"0")}</span></div>
+      <div style={{fontSize:12,color:"#8b7f6c",marginTop:2}}>{new Date(order.createdAt).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"})} · Kasir: Rina A.</div>
+      <hr className="dash"/>
+      {order.items.map((it,i)=>(<div key={i} style={{marginBottom:7}}>
+        <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,fontWeight:600}}><span>{it.qty}× {it.name}</span><span className="price">{rp(it.price*it.qty)}</span></div>
+        {it.opts&&it.opts.length>0&&<div style={{fontSize:11,color:"#8b7f6c",paddingLeft:16}}>{it.opts.join(", ")}</div>}
+      </div>))}
+      <hr className="dash"/>
+      <RR k="Subtotal" v={rp(order.subtotal!=null?order.subtotal:order.total)}/>
+      {order.discount>0&&<RR k={"Diskon"+(order.promo?" "+order.promo.code:"")} v={"−"+rp(order.discount)}/>}
+      <RR k="Biaya layanan" v={rp(order.service!=null?order.service:fee)}/>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontWeight:800,fontSize:14}}><span>TOTAL</span><span className="price" style={{color:"var(--coffee)"}}>{rp(order.total)}</span></div>
+      <RR k="Pembayaran" v={order.method==="qris"?"QRIS":(order.payDetail||"Kasir")}/>
+      <hr className="dash"/>
+      <div style={{textAlign:"center",fontSize:11.5,color:"#8b7f6c",lineHeight:1.6}}>Terima kasih sudah ngopi di Warbul ☕<br/>Sampai jumpa lagi!</div>
+    </div>
+    <div className="rcpt-actions" style={{display:"flex",gap:10,marginTop:12}}>
+      <button onClick={onClose} className="act" style={{flex:1,padding:"13px",background:"#fff",color:"var(--ink)",border:"1.5px solid var(--line)"}}>Tutup</button>
+      <button onClick={()=>window.print()} className="act btn-green" style={{flex:1.4,padding:"13px",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>{I.printer()}Cetak</button>
+    </div>
+  </div></div>);
+}
+
+/* ============================ MENU ADMIN ============================ */
+function MenuAdmin({menu}){
+  const [edit,setEdit]=useState(null); // item or {} for new
+  const [del,setDel]=useState(null);
+  const cats=W.CATS;
+  const toggle=(id)=>{const m=W.getMenu().map(x=>x.id===id?{...x,available:!x.available}:x);W.saveMenu(m);};
+  const save=(item)=>{
+    let m=W.getMenu();
+    if(item.id){m=m.map(x=>x.id===item.id?item:x);}
+    else{item.id="x"+Date.now();item.grad=item.grad||["#8A6038","#503118"];item.g=item.g||"cup";m=[...m,item];}
+    W.saveMenu(m);setEdit(null);
+  };
+  const remove=(id)=>{W.saveMenu(W.getMenu().filter(x=>x.id!==id));setDel(null);};
+  const avail=menu.filter(m=>m.available).length;
+  const lowCount=menu.filter(m=>typeof m.stock==="number"&&m.stock>0&&m.stock<=5).length;
+
+  return(<>
+    <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 28px",borderBottom:"1px solid var(--line)",background:"var(--paper-2)"}}>
+      <div><div className="brand" style={{fontSize:23,fontWeight:700}}>Manajemen Menu</div>
+      <div style={{fontSize:13,color:"#8b7f6c",marginTop:2}}>{menu.length} menu · <span style={{color:"var(--green-ok)",fontWeight:700}}>{avail} tersedia</span>{lowCount>0&&<span> · <span style={{color:"var(--orange-600)",fontWeight:700}}>{lowCount} stok menipis</span></span>} · {menu.length-avail} habis</div></div>
+      <button onClick={()=>setEdit({name:"",price:"",cat:"Kopi",available:true,stock:20})} className="act btn-green" style={{padding:"12px 18px",display:"flex",alignItems:"center",gap:8}}>{I.plus()}Tambah Menu</button>
+    </header>
+    <div style={{flex:1,overflowY:"auto",padding:"22px 28px 40px"}}>
+      {cats.map(c=>{const items=menu.filter(m=>m.cat===c);if(!items.length)return null;return(
+        <div key={c} style={{marginBottom:30}}>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <span className="brand" style={{fontSize:17,fontWeight:700}}>{c}</span>
+            <span style={{fontSize:12,color:"#a99c86",fontWeight:600}}>{items.length} menu</span>
+            <div style={{flex:1,height:1,background:"var(--line)"}}></div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14}}>
+            {items.map(it=>(
+              <div key={it.id} className="card" style={{padding:13,display:"flex",gap:13,alignItems:"center",opacity:it.available?1:.72}}>
+                <Tile it={it} size={62} r={14}/>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontWeight:700,fontSize:14.5,lineHeight:1.2}}>{it.name}</div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:9,marginTop:3}}>
+                    <span className="price" style={{color:"var(--coffee)",fontSize:15}}>{rp(it.price)}</span>
+                    {typeof it.stock==="number"&&<span style={{fontSize:12,fontWeight:700,color:it.stock===0?"var(--red)":it.stock<=5?"var(--orange-600)":"#a99c86"}}>· Stok {it.stock}{it.stock>0&&it.stock<=5?" (menipis)":""}</span>}
+                  </div>
+                  <div style={{display:"flex",alignItems:"center",gap:8,marginTop:8}}>
+                    <div className="switch" onClick={()=>toggle(it.id)} style={{background:it.available?"var(--green-ok)":"var(--cream-300)"}}><i style={{left:it.available?20:2}}></i></div>
+                    <span style={{fontSize:12,fontWeight:700,color:it.available?"var(--green-ok)":"#a99c86"}}>{it.available?"Tersedia":"Habis"}</span>
+                  </div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  <button onClick={()=>setEdit(it)} className="act" style={{width:34,height:34,display:"grid",placeItems:"center",background:"var(--cream)",color:"var(--green-800)",borderRadius:10}}>{I.edit()}</button>
+                  <button onClick={()=>setDel(it)} className="act" style={{width:34,height:34,display:"grid",placeItems:"center",background:"var(--red-bg)",color:"var(--red)",borderRadius:10}}>{I.trash()}</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>);})}
+    </div>
+    {edit&&<EditModal item={edit} onClose={()=>setEdit(null)} onSave={save}/>}
+    {del&&<ConfirmModal item={del} onClose={()=>setDel(null)} onConfirm={()=>remove(del.id)}/>}
+  </>);
+}
+
+function EditModal({item,onClose,onSave}){
+  const [f,setF]=useState({...item});
+  const set=(k,v)=>setF(s=>({...s,[k]:v}));
+  const ok=f.name&&f.price;
+  return(<div className="modalbd" onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:"var(--paper)",borderRadius:22,padding:26,width:420,maxWidth:"92vw",animation:"mpop .2s"}}>
+    <div className="brand" style={{fontSize:21,fontWeight:700,marginBottom:18}}>{item.id?"Edit Menu":"Tambah Menu Baru"}</div>
+    <label style={{fontSize:13,fontWeight:700,color:"#6f6353"}}>Nama Menu</label>
+    <input className="fld" style={{margin:"7px 0 15px"}} value={f.name} onChange={e=>set("name",e.target.value)} placeholder="cth. Es Kopi Susu Warbul" autoFocus/>
+    <div style={{display:"flex",gap:13}}>
+      <div style={{flex:1}}><label style={{fontSize:13,fontWeight:700,color:"#6f6353"}}>Harga (Rp)</label>
+        <input className="fld" style={{margin:"7px 0 15px"}} type="number" value={f.price} onChange={e=>set("price",Number(e.target.value))} placeholder="18000"/></div>
+      <div style={{flex:1}}><label style={{fontSize:13,fontWeight:700,color:"#6f6353"}}>Stok</label>
+        <input className="fld" style={{margin:"7px 0 15px"}} type="number" value={f.stock==null?"":f.stock} onChange={e=>set("stock",Number(e.target.value))} placeholder="20"/></div>
+      <div style={{flex:1}}><label style={{fontSize:13,fontWeight:700,color:"#6f6353"}}>Kategori</label>
+        <select className="fld" style={{margin:"7px 0 15px"}} value={f.cat} onChange={e=>set("cat",e.target.value)}>{W.CATS.map(c=><option key={c}>{c}</option>)}</select></div>
+    </div>
+    <label style={{fontSize:13,fontWeight:700,color:"#6f6353"}}>Deskripsi</label>
+    <input className="fld" style={{margin:"7px 0 18px"}} value={f.desc||""} onChange={e=>set("desc",e.target.value)} placeholder="Deskripsi singkat menu"/>
+    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:22}}>
+      <div className="switch" onClick={()=>set("available",!f.available)} style={{background:f.available?"var(--green-ok)":"var(--cream-300)"}}><i style={{left:f.available?20:2}}></i></div>
+      <span style={{fontSize:14,fontWeight:600}}>{f.available?"Tersedia untuk dipesan":"Ditandai habis"}</span>
+    </div>
+    <div style={{display:"flex",gap:11}}>
+      <button onClick={onClose} className="act" style={{flex:1,padding:"13px",background:"#fff",color:"var(--ink)",border:"1.5px solid var(--line)"}}>Batal</button>
+      <button onClick={()=>ok&&onSave({...f,price:Number(f.price),stock:f.stock==null?0:Number(f.stock)})} className="act btn-green" style={{flex:1.6,padding:"13px",opacity:ok?1:.5}}>Simpan</button>
+    </div>
+  </div></div>);
+}
+function ConfirmModal({item,onClose,onConfirm}){
+  return(<div className="modalbd" onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:"var(--paper)",borderRadius:22,padding:26,width:360,maxWidth:"92vw",animation:"mpop .2s",textAlign:"center"}}>
+    <div style={{width:54,height:54,borderRadius:50,background:"var(--red-bg)",color:"var(--red)",display:"grid",placeItems:"center",margin:"0 auto 14px"}}>{I.trash({width:24,height:24})}</div>
+    <div className="brand" style={{fontSize:19,fontWeight:700}}>Hapus menu ini?</div>
+    <p style={{color:"#8b7f6c",fontSize:14,margin:"8px 0 22px"}}>“{item.name}” akan dihapus dari menu. Tindakan ini tidak bisa dibatalkan.</p>
+    <div style={{display:"flex",gap:11}}>
+      <button onClick={onClose} className="act" style={{flex:1,padding:"13px",background:"#fff",color:"var(--ink)",border:"1.5px solid var(--line)"}}>Batal</button>
+      <button onClick={onConfirm} className="act" style={{flex:1,padding:"13px",background:"var(--red)",color:"#fff"}}>Hapus</button>
+    </div>
+  </div></div>);
+}
+
+/* ============================ CASHIER ORDER ENTRY ============================ */
+const lineKey=(id,sel)=>id+"|"+JSON.stringify(sel||{});
+function ModSheet({item,onClose,onConfirm}){
+  const groups=W.modGroupsFor(item);
+  const [sel,setSel]=useState(W.defaultSelection(item));
+  const [n,setN]=useState(1);
+  const unit=W.unitPrice(item,sel);
+  const setSingle=(g,o)=>setSel(s=>({...s,[g]:o}));
+  const toggleMulti=(g,o)=>setSel(s=>{const a=s[g]||[];return {...s,[g]:a.includes(o)?a.filter(x=>x!==o):[...a,o]};});
+  return(<div className="modalbd" onClick={onClose}><div onClick={e=>e.stopPropagation()} style={{background:"var(--paper)",borderRadius:20,width:420,maxWidth:"92vw",maxHeight:"88vh",display:"flex",flexDirection:"column",animation:"mpop .2s"}}>
+    <div style={{padding:"20px 22px 6px"}}><div className="brand" style={{fontSize:19,fontWeight:700}}>{item.name}</div><div className="price" style={{color:"var(--coffee)",fontSize:15}}>{rp(item.price)}</div></div>
+    <div style={{padding:"6px 22px",overflowY:"auto",flex:1}}>
+      {groups.map(g=>(<div key={g.id} style={{marginBottom:16}}>
+        <div style={{fontWeight:700,fontSize:13.5,marginBottom:8}}>{g.name} <span style={{fontSize:11,color:"#a99c86",fontWeight:600}}>{g.type==="single"?"Pilih 1":"Opsional"}</span></div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:8}}>
+          {g.options.map(o=>{const on=g.type==="single"?sel[g.id]===o.id:(sel[g.id]||[]).includes(o.id);return(
+            <div key={o.id} onClick={()=>g.type==="single"?setSingle(g.id,o.id):toggleMulti(g.id,o.id)} style={{cursor:"pointer",border:"1.5px solid "+(on?"var(--green-700)":"var(--line)"),background:on?"var(--green-ok-bg)":"#fff",color:on?"var(--green-800)":"var(--ink)",borderRadius:10,padding:"8px 12px",fontSize:13,fontWeight:on?700:600}}>{o.label}{o.price>0&&<span style={{color:"var(--coffee)"}}> +{rp(o.price)}</span>}</div>);})}
+        </div>
+      </div>))}
+    </div>
+    <div style={{padding:"12px 22px 18px",borderTop:"1px solid var(--line)",display:"flex",gap:12,alignItems:"center"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,background:"#fff",borderRadius:12,padding:"6px 10px",border:"1px solid var(--line)"}}>
+        <button onClick={()=>setN(x=>Math.max(1,x-1))} style={{width:28,height:28,borderRadius:8,border:"none",background:"var(--cream)",fontSize:18,fontWeight:700,cursor:"pointer",color:"var(--green-800)"}}>−</button>
+        <span className="brand" style={{fontSize:16,minWidth:16,textAlign:"center"}}>{n}</span>
+        <button onClick={()=>setN(x=>x+1)} style={{width:28,height:28,borderRadius:8,border:"none",background:"var(--green-700)",color:"#fff",fontSize:18,fontWeight:700,cursor:"pointer"}}>+</button>
+      </div>
+      <button onClick={()=>onConfirm(sel,n)} className="act btn-gold" style={{flex:1,padding:"13px"}}>Tambah · {rp(unit*n)}</button>
+    </div>
+  </div></div>);
+}
+function CashierOrder({menu,goOrders}){
+  const [cart,setCart]=useState({});
+  const [cat,setCat]=useState("Kopi");
+  const [q,setQ]=useState("");
+  const [takeaway,setTakeaway]=useState(false);
+  const [table,setTable]=useState(1);
+  const [method,setMethod]=useState("Tunai");
+  const [done,setDone]=useState(false);
+  const [modItem,setModItem]=useState(null);
+  const fee=W.SERVICE_FEE;
+  const cats=W.CATS;
+  let list = q ? menu.filter(m=>W.isOrderable(m)&&m.name.toLowerCase().includes(q.toLowerCase()))
+              : menu.filter(m=>m.cat===cat&&W.isOrderable(m));
+  const lines=Object.keys(cart).map(key=>{const l=cart[key];const it=menu.find(m=>m.id===l.id);if(!it)return null;
+    return {key,it,sel:l.sel,qty:l.qty,opts:W.modSummary(it,l.sel),unit:W.unitPrice(it,l.sel)};}).filter(Boolean);
+  const subtotal=lines.reduce((s,l)=>s+l.unit*l.qty,0);
+  const totals=W.computeTotals(lines.map(l=>({price:l.unit,qty:l.qty})),0);
+  const addLine=(id,sel,n)=>setCart(c=>{const k=lineKey(id,sel);const cur=c[k];const v=(cur?cur.qty:0)+n;const nc={...c};if(v<=0)delete nc[k];else nc[k]={id,sel,qty:v};return nc;});
+  const setQty=(key,n)=>setCart(c=>{const cur=c[key];if(!cur)return c;const v=cur.qty+n;const nc={...c};if(v<=0)delete nc[key];else nc[key]={...cur,qty:v};return nc;});
+  const cartQtyFor=(id)=>lines.filter(l=>l.it.id===id).reduce((a,l)=>a+l.qty,0);
+  const tap=(it)=>{ if(W.modGroupsFor(it).length>0) setModItem(it); else addLine(it.id,{},1); };
+  const create=()=>{
+    if(!lines.length)return;
+    const items=lines.map(l=>({id:l.it.id,name:l.it.name,price:l.unit,qty:l.qty,opts:l.opts}));
+    const t=W.computeTotals(items.map(i=>({price:i.price,qty:i.qty})),0);
+    W.addOrder({table:takeaway?0:table, method:"kasir", payDetail:method, paid:true, status:S.COOKING,
+      items, subtotal:t.subtotal, service:t.service, discount:0, total:t.total, note:"Pesanan dibuat di kasir · "+method});
+    setDone(true);
+    setTimeout(()=>{setCart({});setDone(false);goOrders();},1300);
+  };
+  const methods=["Tunai","Kartu","QRIS"];
+
+  return(<>
+    <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 28px",borderBottom:"1px solid var(--line)",background:"var(--paper-2)"}}>
+      <div><div className="brand" style={{fontSize:23,fontWeight:700}}>Buat Pesanan</div>
+      <div style={{fontSize:13,color:"#8b7f6c",marginTop:2}}>Untuk pelanggan yang memesan langsung di kasir</div></div>
+      <span className="pill" style={{background:"var(--cream)",color:"var(--coffee)",fontSize:12.5,padding:"6px 12px"}}>{I.register()}<span style={{marginLeft:5}}>Mode Kasir</span></span>
+    </header>
+    <div style={{flex:1,display:"flex",minHeight:0}} className="neworderSplit">
+      {/* menu picker */}
+      <div style={{flex:1,minWidth:0,display:"flex",flexDirection:"column",minHeight:0}}>
+        <div style={{padding:"16px 24px 6px",display:"flex",gap:12,alignItems:"center",flexWrap:"wrap"}}>
+          <div style={{display:"flex",alignItems:"center",gap:9,background:"#fff",border:"1.5px solid var(--line)",borderRadius:13,padding:"9px 14px",flex:1,minWidth:180,color:"#9b8e76"}}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#b6a98e" strokeWidth="2"/><path d="m20 20-3-3" stroke="#b6a98e" strokeWidth="2"/></svg>
+            <input value={q} onChange={e=>setQ(e.target.value)} placeholder="Cari menu cepat…" style={{border:"none",outline:"none",background:"none",flex:1,fontSize:14,color:"var(--ink)"}}/>
+          </div>
+        </div>
+        {!q&&<div style={{display:"flex",gap:8,overflowX:"auto",padding:"8px 24px 6px"}}>
+          {cats.map(c=><button key={c} onClick={()=>setCat(c)} className="act" style={{padding:"8px 15px",fontSize:13.5,whiteSpace:"nowrap",background:cat===c?"var(--green-800)":"#fff",color:cat===c?"var(--cream)":"var(--green-800)",border:"1.5px solid "+(cat===c?"var(--green-800)":"var(--line)")}}>{c}</button>)}
+        </div>}
+        <div style={{flex:1,overflowY:"auto",padding:"12px 24px 24px"}}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(150px,1fr))",gap:14}}>
+            {list.map(it=>{const inCart=cartQtyFor(it.id);const hasMod=W.modGroupsFor(it).length>0;return(
+              <div key={it.id} onClick={()=>tap(it)} className="card" style={{padding:0,overflow:"hidden",cursor:"pointer",position:"relative",border:inCart?"2px solid var(--green-700)":"1px solid var(--cream-200)"}}>
+                <Tile it={it} size={150} r={0}/>
+                {inCart>0&&<div style={{position:"absolute",top:8,right:8,minWidth:26,height:26,borderRadius:13,background:"var(--green-700)",color:"#fff",display:"grid",placeItems:"center",fontWeight:800,fontSize:14,padding:"0 6px"}} className="brand">{inCart}</div>}
+                <div style={{padding:"10px 12px 12px"}}>
+                  <div style={{fontWeight:700,fontSize:13.5,lineHeight:1.2,minHeight:34}}>{it.name}</div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:3}}><span className="price" style={{color:"var(--coffee)",fontSize:15}}>{rp(it.price)}</span>{hasMod&&<span style={{fontSize:10.5,color:"#a99c86",fontWeight:700}}>+ opsi</span>}</div>
+                </div>
+              </div>);})}
+            {list.length===0&&<div style={{color:"#a99c86",padding:30}}>Menu tidak ditemukan.</div>}
+          </div>
+        </div>
+      </div>
+      {/* ticket */}
+      <div style={{width:386,flex:"0 0 auto",borderLeft:"1px solid var(--line)",background:"#fff",display:"flex",flexDirection:"column",minHeight:0}} className="ticket">
+        <div style={{padding:"18px 20px 14px",borderBottom:"1px solid var(--line)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:13}}>
+            <span className="brand" style={{fontSize:18,fontWeight:700}}>Pesanan Baru</span>
+            {lines.length>0&&<button onClick={()=>setCart({})} style={{background:"none",border:"none",color:"var(--red)",fontSize:12.5,fontWeight:700,cursor:"pointer"}}>Kosongkan</button>}
+          </div>
+          <div style={{display:"flex",gap:8,marginBottom:10}}>
+            <button onClick={()=>setTakeaway(false)} className="act" style={{flex:1,padding:"9px",fontSize:13,background:!takeaway?"var(--green-800)":"var(--cream)",color:!takeaway?"var(--cream)":"var(--green-800)"}}>Makan di Tempat</button>
+            <button onClick={()=>setTakeaway(true)} className="act" style={{flex:1,padding:"9px",fontSize:13,background:takeaway?"var(--green-800)":"var(--cream)",color:takeaway?"var(--cream)":"var(--green-800)"}}>Bawa Pulang</button>
+          </div>
+          {!takeaway&&<div style={{display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:13,fontWeight:600,color:"#6f6353"}}>Nomor Meja</span>
+            <select value={table} onChange={e=>setTable(Number(e.target.value))} className="fld" style={{flex:1,padding:"9px 12px"}}>
+              {Array.from({length:12},(_,i)=>i+1).map(n=><option key={n} value={n}>Meja {String(n).padStart(2,"0")}</option>)}
+            </select>
+          </div>}
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"8px 20px"}}>
+          {lines.length===0?
+            <div style={{textAlign:"center",color:"#a99c86",padding:"46px 10px",fontSize:13.5}}>Ketuk menu di kiri untuk menambah ke pesanan.</div>
+            :lines.map(l=>(
+              <div key={l.key} style={{display:"flex",alignItems:"flex-start",gap:11,padding:"11px 0",borderBottom:"1px solid var(--line)"}}>
+                <div style={{flex:1,minWidth:0}}><div style={{fontWeight:700,fontSize:13.5,lineHeight:1.2}}>{l.it.name}</div>{l.opts.length>0&&<div style={{fontSize:11.5,color:"#8b7f6c",marginTop:2}}>{l.opts.join(" · ")}</div>}<div className="price" style={{color:"var(--coffee)",fontSize:13.5,marginTop:3}}>{rp(l.unit*l.qty)}</div></div>
+                <div style={{display:"flex",alignItems:"center",gap:9}}>
+                  <button onClick={()=>setQty(l.key,-1)} style={{width:27,height:27,borderRadius:8,border:"1.5px solid var(--line)",background:"#fff",fontSize:16,cursor:"pointer",color:"var(--green-800)",fontWeight:700}}>−</button>
+                  <span className="brand" style={{fontSize:15,minWidth:14,textAlign:"center"}}>{l.qty}</span>
+                  <button onClick={()=>setQty(l.key,1)} style={{width:27,height:27,borderRadius:8,border:"none",background:"var(--green-700)",color:"#fff",fontSize:16,cursor:"pointer",fontWeight:700}}>+</button>
+                </div>
+              </div>))}
+        </div>
+        <div style={{padding:"14px 20px 18px",borderTop:"1px solid var(--line)",background:"var(--paper-2)"}}>
+          <div style={{marginBottom:12}}>
+            <div style={{fontSize:12,fontWeight:700,color:"#8b7f6c",marginBottom:8}}>METODE BAYAR</div>
+            <div style={{display:"flex",gap:7}}>
+              {methods.map(m=><button key={m} onClick={()=>setMethod(m)} className="act" style={{flex:1,padding:"9px",fontSize:13,background:method===m?"var(--gold)":"#fff",color:method===m?"var(--coffee-900)":"var(--green-800)",border:"1.5px solid "+(method===m?"var(--gold-600)":"var(--line)")}}>{m}</button>)}
+            </div>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#6f6353",padding:"2px 0"}}><span>Subtotal</span><span>{rp(totals.subtotal)}</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:13,color:"#6f6353",padding:"2px 0"}}><span>Biaya layanan</span><span>{rp(totals.service)}</span></div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:8,paddingTop:8,borderTop:"1px dashed var(--line)"}}><span style={{fontWeight:700,fontSize:15}}>Total</span><span className="price" style={{fontSize:23,color:"var(--coffee)"}}>{rp(totals.total)}</span></div>
+          <button onClick={create} className="act btn-gold" style={{width:"100%",marginTop:14,padding:"15px",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",gap:9,opacity:lines.length?1:.5}}>{I.check()}Buat & Bayar · {rp(totals.total)}</button>
+        </div>
+      </div>
+    </div>
+    {done&&<div className="modalbd"><div style={{background:"#fff",borderRadius:22,padding:"34px 40px",textAlign:"center",animation:"mpop .2s"}}>
+      <div style={{width:64,height:64,borderRadius:50,background:"var(--green-ok-bg)",color:"var(--green-ok)",display:"grid",placeItems:"center",margin:"0 auto 16px"}}>{I.check({width:30,height:30})}</div>
+      <div className="brand" style={{fontSize:21,fontWeight:700}}>Pesanan Dibuat!</div>
+      <div style={{color:"#8b7f6c",fontSize:14,marginTop:6}}>Diteruskan ke dapur · {takeaway?"Bawa Pulang":"Meja "+String(table).padStart(2,"0")}</div>
+    </div></div>}
+    {modItem&&<ModSheet item={modItem} onClose={()=>setModItem(null)} onConfirm={(sel,n)=>{addLine(modItem.id,sel,n);setModItem(null);}}/>}
+  </>);
+}
+
+/* responsive */
+const style=document.createElement("style");
+style.textContent=`
+@media(max-width:1080px){.sidebar{width:74px!important}.sidebar .brand,.sidebar .navitem span,.sidebar [data-lbl]{display:none}.navitem{justify-content:center;padding:12px!important}}
+@media(max-width:860px){.ordersplit{flex-direction:column}.orderlist{width:100%!important;border-right:none!important;border-bottom:1px solid var(--line);max-height:42%}.loginbrand{display:none}.loginwrap{grid-template-columns:1fr!important}}
+@media(max-width:980px){.neworderSplit{flex-direction:column;overflow-y:auto}.neworderSplit>div:first-child{min-height:60vh!important;flex:0 0 auto!important}.ticket{width:100%!important;border-left:none!important;border-top:1px solid var(--line)}}
+`;
+document.head.appendChild(style);
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

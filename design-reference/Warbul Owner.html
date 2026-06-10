@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Warbul — Dasbor Pemilik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="warbul.css" />
+<style>
+  html,body{margin:0;height:100%}
+  body{font-family:'Plus Jakarta Sans',sans-serif;color:var(--ink);background:var(--paper);height:100vh;overflow:hidden}
+  #root{height:100%}
+  .price{font-family:'Baloo 2',sans-serif;font-weight:700}
+  .navitem{display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:13px;cursor:pointer;font-weight:600;font-size:14.5px;color:var(--cream);transition:.15s}
+  .navitem:hover{background:rgba(255,255,255,.07)}
+  .navitem.on{background:var(--gold);color:var(--coffee-900);font-weight:700}
+  .card{background:#fff;border:1px solid var(--cream-200);border-radius:20px}
+  .kpi{padding:20px 22px;position:relative;overflow:hidden}
+  .delta{font-size:12px;font-weight:800;padding:3px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:3px}
+  .up{color:var(--green-ok);background:var(--green-ok-bg)}
+  .down{color:var(--red);background:var(--red-bg)}
+  .rangebtn{padding:8px 15px;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;border-radius:11px;transition:.15s;background:transparent;color:#6f6353}
+  .rangebtn.on{background:#fff;color:var(--green-800);box-shadow:0 2px 6px -2px rgba(58,38,24,.25)}
+  .tile{position:relative;overflow:hidden}.tile .glyph{position:absolute;inset:0;display:grid;place-items:center}
+  .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:var(--cream-300);border-radius:9px}
+  .bar-track{height:9px;border-radius:9px;background:var(--cream-200);overflow:hidden}
+  .bar-fill{height:100%;border-radius:9px}
+  .switch{width:42px;height:24px;border-radius:999px;position:relative;cursor:pointer;transition:.2s;flex:0 0 auto}
+  .switch i{position:absolute;top:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+  .fld{width:100%;border:1.5px solid var(--line);border-radius:11px;padding:11px 13px;font-size:14px;outline:none;background:#fff;font-family:inherit}
+  .fld:focus{border-color:var(--green-700)}
+  .seg{padding:8px 14px;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;border-radius:10px;transition:.15s}
+  .rtr{border-top:1px solid var(--line)}
+  .rtr td{padding:13px 8px}
+  @keyframes rise{from{transform:scaleY(0)}}
+  .hbar{transform-origin:bottom;animation:rise .6s ease}
+  @media(max-width:1180px){.sidebar{width:74px!important}.sidebar .brand,.sidebar .navitem span,.sidebar .userinfo{display:none}.navitem{justify-content:center;padding:12px!important}.grid2{grid-template-columns:1fr!important}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="warbul.js"></script>
+<script type="text/babel">
+const { useState, useEffect } = React;
+const W = window.Warbul;
+const rp = W.rupiah;
+const rpShort = (n)=> n>=1e6 ? "Rp"+(n/1e6).toFixed(n%1e6?1:0)+"jt" : n>=1e3 ? "Rp"+Math.round(n/1e3)+"rb" : "Rp"+n;
+
+const Logo=({s=40})=>(<img src="assets/warbul-logo.png" alt="Warbul" width={s} height={s} style={{display:"block",borderRadius:"50%"}}/>);
+const Cup=({c,s})=>(<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M9 16h26v11a9 9 0 0 1-9 9H18a9 9 0 0 1-9-9V16Z" stroke={c} strokeWidth="2.4"/><path d="M35 19h4a4 4 0 0 1 0 8h-4" stroke={c} strokeWidth="2.4"/><path d="M16 7c-1.5 2 1.5 3 0 5M23 7c-1.5 2 1.5 3 0 5" stroke={c} strokeWidth="2.2" strokeLinecap="round" opacity=".8"/></svg>);
+const Bowl=({c,s})=>(<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M8 22h32a16 16 0 0 1-16 16A16 16 0 0 1 8 22Z" stroke={c} strokeWidth="2.4"/><path d="M16 22c0-7 16-7 16 0" stroke={c} strokeWidth="2.2"/></svg>);
+const Fries=({c,s})=>(<svg width={s} height={s} viewBox="0 0 48 48" fill="none"><path d="M13 22h22l-2 16H15l-2-16Z" stroke={c} strokeWidth="2.4"/><path d="M17 22l-1-11M22 22V9M27 22l1-12M32 22l2-9" stroke={c} strokeWidth="2.2" strokeLinecap="round"/></svg>);
+const GLYPH={cup:Cup,bowl:Bowl,fries:Fries};
+
+const I={
+  home:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><path d="M4 11l8-7 8 7M6 10v9h12v-9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  chart:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><path d="M4 19V5M4 19h16M8 16v-4M12 16V8M16 16v-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  orders:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><path d="M4 5h16M4 12h16M4 19h10" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  menu:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/><rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2"/></svg>,
+  gear:(p)=><svg width="20" height="20" viewBox="0 0 24 24" fill="none" {...p}><circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="2"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M18.4 5.6l-1.8 1.8M7.4 16.6l-1.8 1.8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  logout:(p)=><svg width="19" height="19" viewBox="0 0 24 24" fill="none" {...p}><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 12h10M17 9l3 3-3 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  wallet:(p)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" {...p}><rect x="3" y="6" width="18" height="13" rx="3" stroke="currentColor" strokeWidth="2"/><path d="M3 10h18" stroke="currentColor" strokeWidth="2"/><circle cx="16.5" cy="14.5" r="1.3" fill="currentColor"/></svg>,
+  bag:(p)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" {...p}><path d="M6 8h12l-1 11a2 2 0 0 1-2 1.8H9A2 2 0 0 1 7 19L6 8Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M9 8a3 3 0 0 1 6 0" stroke="currentColor" strokeWidth="2"/></svg>,
+  avg:(p)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" {...p}><circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2"/><path d="M8 13c1.5 1.5 6.5 1.5 8 0M12 7v2M12 15v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>,
+  cube:(p)=><svg width="22" height="22" viewBox="0 0 24 24" fill="none" {...p}><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9" stroke="currentColor" strokeWidth="2"/></svg>,
+  download:(p)=><svg width="16" height="16" viewBox="0 0 24 24" fill="none" {...p}><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  bell:(p)=><svg width="19" height="19" viewBox="0 0 24 24" fill="none" {...p}><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth="2"/></svg>,
+};
+
+/* ---------------- analytics dataset ---------------- */
+const DAYS=["Sen","Sel","Rab","Kam","Jum","Sab","Min"];
+const DATA={
+  today:{ rev:2480000, orders:86, avg:28837, items:214, dRev:12.4, dOrд:8, dAvg:3.1, dItems:9,
+    series:[ // hourly 08-21
+      {x:"08",v:95000},{x:"09",v:140000},{x:"10",v:175000},{x:"11",v:210000},{x:"12",v:330000},{x:"13",v:295000},
+      {x:"14",v:160000},{x:"15",v:185000},{x:"16",v:205000},{x:"17",v:240000},{x:"18",v:320000},{x:"19",v:355000},{x:"20",v:285000},{x:"21",v:185000}],
+    seriesLabel:"Pendapatan per jam" },
+  week:{ rev:17640000, orders:612, avg:28823, items:1503, dRev:9.1, dOrд:6.2, dAvg:2.4, dItems:5.5,
+    series:[{x:"Sen",v:1820000},{x:"Sel",v:2150000},{x:"Rab",v:1980000},{x:"Kam",v:2410000},{x:"Jum",v:2920000},{x:"Sab",v:3380000},{x:"Min",v:2980000}],
+    seriesLabel:"Pendapatan 7 hari terakhir" },
+  month:{ rev:71200000, orders:2480, avg:28709, items:6120, dRev:14.8, dOrд:11.2, dAvg:1.8, dItems:10.4,
+    series:[{x:"Mg 1",v:15800000},{x:"Mg 2",v:17200000},{x:"Mg 3",v:18600000},{x:"Mg 4",v:19600000}],
+    seriesLabel:"Pendapatan per minggu" },
+};
+const TOP=[
+  {id:"k1",name:"Es Kopi Susu Warbul",cat:"Kopi",g:"cup",grad:["#6F4A2C","#3C2618"],sold:142,rev:2556000},
+  {id:"k5",name:"Caramel Macchiato",cat:"Kopi",g:"cup",grad:["#A9743F","#6B4423"],sold:98,rev:2744000},
+  {id:"m1",name:"Nasi Goreng Warbul",cat:"Makanan",g:"bowl",grad:["#C9762C","#8A4D1C"],sold:76,rev:2128000},
+  {id:"n1",name:"Matcha Latte",cat:"Non-Kopi",g:"cup",grad:["#5E7B47","#36502C"],sold:64,rev:1664000},
+  {id:"s1",name:"Kentang Goreng",cat:"Snack",g:"fries",grad:["#E0A431","#B97A1E"],sold:58,rev:1044000},
+];
+const CATSPLIT=[
+  {label:"Kopi",pct:48,c:"var(--coffee)"},
+  {label:"Non-Kopi",pct:22,c:"var(--green-ok)"},
+  {label:"Makanan",pct:20,c:"var(--orange)"},
+  {label:"Snack",pct:10,c:"var(--gold-600)"},
+];
+
+/* ============================ ROOT ============================ */
+function App(){
+  const [view,setView]=useState("home");
+  const [range,setRange]=useState("today");
+  return(
+    <div style={{height:"100%",display:"flex",background:"var(--paper)"}}>
+      <Sidebar view={view} setView={setView}/>
+      <main style={{flex:1,minWidth:0,display:"flex",flexDirection:"column"}}>
+        {view==="home" && <Overview range={range} setRange={setRange}/>}
+        {view==="sales" && <SalesReport/>}
+        {view==="settings" && <Settings/>}
+      </main>
+    </div>
+  );
+}
+function Overview({range,setRange}){
+  const d=DATA[range];
+  return(<>
+    <Header range={range} setRange={setRange}/>
+    <div style={{flex:1,overflowY:"auto",padding:"22px 28px 40px"}}>
+      <KPIs d={d}/>
+      <LowStockAlert/>
+      <div className="grid2" style={{display:"grid",gridTemplateColumns:"1.7fr 1fr",gap:18,marginTop:18}}>
+        <RevenueCard d={d}/>
+        <PaymentCard/>
+      </div>
+      <div className="grid2" style={{display:"grid",gridTemplateColumns:"1.25fr 1fr",gap:18,marginTop:18}}>
+        <TopMenu/>
+        <CategoryCard/>
+      </div>
+      <LiveFeed/>
+    </div>
+  </>);
+}
+
+function Sidebar({view,setView}){
+  const nav=[{k:"home",i:I.home,l:"Ringkasan"},{k:"sales",i:I.chart,l:"Laporan Penjualan"},
+    {k:"orders",i:I.orders,l:"Pesanan",href:"Warbul POS.html"},{k:"menu",i:I.menu,l:"Manajemen Menu",href:"Warbul POS.html"},{k:"settings",i:I.gear,l:"Pengaturan"}];
+  return(
+    <aside className="sidebar" style={{width:248,background:"var(--green-900)",display:"flex",flexDirection:"column",padding:"22px 16px",flex:"0 0 auto"}}>
+      <div style={{display:"flex",alignItems:"center",gap:12,padding:"4px 8px 8px"}}>
+        <Logo s={42}/><div><div className="brand t-gold" style={{fontSize:21,fontWeight:800,lineHeight:1}}>Warbul</div><div style={{fontSize:10.5,color:"rgba(244,237,217,.6)",fontWeight:600,letterSpacing:".04em"}}>DASBOR PEMILIK</div></div>
+      </div>
+      <div style={{margin:"14px 6px 18px",padding:"11px 13px",background:"rgba(255,255,255,.06)",borderRadius:13,border:"1px solid rgba(255,255,255,.08)"}} className="userinfo">
+        <div style={{fontSize:11,color:"rgba(244,237,217,.55)",fontWeight:600}}>CABANG</div>
+        <div style={{color:"var(--cream)",fontWeight:700,fontSize:13.5,marginTop:2}}>Dipatiukur, Bandung</div>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:6}}>
+        {nav.map(n=>{const inner=<>{n.i()}<span>{n.l}</span></>;return n.href
+          ? <a key={n.k} href={n.href} className="navitem" style={{textDecoration:"none"}}>{inner}</a>
+          : <div key={n.k} className={"navitem"+(view===n.k?" on":"")} onClick={()=>setView(n.k)}>{inner}</div>;})}
+      </div>
+      <div style={{marginTop:"auto",borderTop:"1px solid rgba(255,255,255,.1)",paddingTop:14}}>
+        <div className="userinfo" style={{display:"flex",alignItems:"center",gap:11,padding:"4px 6px 12px"}}>
+          <div style={{width:38,height:38,borderRadius:12,background:"var(--gold)",color:"var(--coffee-900)",display:"grid",placeItems:"center",fontWeight:800,fontSize:15}} className="brand">BP</div>
+          <div style={{lineHeight:1.2}}><div style={{color:"var(--cream)",fontWeight:700,fontSize:13.5}}>Budi P.</div><div style={{color:"rgba(244,237,217,.55)",fontSize:11.5}}>Pemilik</div></div>
+        </div>
+        <a href="Warbul.html" className="navitem" style={{fontSize:13.5,textDecoration:"none"}}>{I.logout()}<span>Keluar</span></a>
+      </div>
+    </aside>
+  );
+}
+
+function Header({range,setRange}){
+  const ranges=[{k:"today",l:"Hari Ini"},{k:"week",l:"7 Hari"},{k:"month",l:"30 Hari"}];
+  const today=new Date().toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  return(
+    <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 28px",borderBottom:"1px solid var(--line)",background:"var(--paper-2)",flexWrap:"wrap",gap:14}}>
+      <div>
+        <div className="brand" style={{fontSize:23,fontWeight:700}}>Halo, Budi 👋</div>
+        <div style={{fontSize:13,color:"#8b7f6c",marginTop:2}}>Ringkasan bisnis · {today}</div>
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{display:"flex",gap:3,background:"var(--cream-200)",padding:4,borderRadius:13}}>
+          {ranges.map(r=><button key={r.k} className={"rangebtn"+(range===r.k?" on":"")} onClick={()=>setRange(r.k)}>{r.l}</button>)}
+        </div>
+        <button style={{width:42,height:42,borderRadius:12,border:"1px solid var(--line)",background:"#fff",display:"grid",placeItems:"center",cursor:"pointer",color:"var(--green-800)",position:"relative"}}>{I.bell()}<span style={{position:"absolute",top:9,right:9,width:8,height:8,borderRadius:9,background:"var(--orange)"}}></span></button>
+        <button className="btn-green" style={{border:"none",cursor:"pointer",borderRadius:12,padding:"11px 16px",fontWeight:700,fontSize:13.5,display:"flex",alignItems:"center",gap:8}}>{I.download()}Ekspor</button>
+      </div>
+    </header>
+  );
+}
+
+function LowStockAlert(){
+  const [menu,setMenu]=useState(W.getMenu());
+  useEffect(()=>{W.onChange(()=>setMenu(W.getMenu()));},[]);
+  const low=menu.filter(m=>typeof m.stock==="number"&&m.stock<=5);
+  if(!low.length)return null;
+  return(<div className="card" style={{marginTop:18,padding:"15px 20px",border:"1px solid #ECCF9E",background:"#FBF1DF",display:"flex",alignItems:"center",gap:15,flexWrap:"wrap"}}>
+    <div style={{width:40,height:40,borderRadius:11,background:"var(--orange)",color:"#fff",display:"grid",placeItems:"center",fontWeight:800,fontSize:20,flex:"0 0 auto"}}>!</div>
+    <div style={{flex:1,minWidth:220}}>
+      <div style={{fontWeight:700,fontSize:14.5}}>Stok menipis — {low.length} menu perlu segera di-restock</div>
+      <div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2}}>{low.map(m=>m.name+" ("+m.stock+(m.stock===0?", habis":"")+")").join(" · ")}</div>
+    </div>
+    <a href="Warbul POS.html" className="btn-green" style={{textDecoration:"none",borderRadius:11,padding:"10px 16px",fontWeight:700,fontSize:13.5,flex:"0 0 auto"}}>Kelola Stok →</a>
+  </div>);
+}
+function KPIs({d}){
+  const cards=[
+    {l:"Pendapatan",v:rp(d.rev),delta:d.dRev,ico:I.wallet,c:"var(--green-700)",bg:"#E4EEE4"},
+    {l:"Total Pesanan",v:d.orders.toLocaleString("id-ID"),delta:d.dOrд,ico:I.bag,c:"var(--coffee)",bg:"#F1E6D6"},
+    {l:"Rata-rata / Pesanan",v:rp(d.avg),delta:d.dAvg,ico:I.avg,c:"var(--blue)",bg:"#E0EAF0"},
+    {l:"Menu Terjual",v:d.items.toLocaleString("id-ID"),delta:d.dItems,ico:I.cube,c:"var(--orange-600)",bg:"#F8EAD6"},
+  ];
+  return(<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:18}}>
+    {cards.map(c=>(
+      <div key={c.l} className="card kpi">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{width:44,height:44,borderRadius:13,background:c.bg,color:c.c,display:"grid",placeItems:"center"}}>{c.ico()}</div>
+          <span className={"delta "+(c.delta>=0?"up":"down")}>{c.delta>=0?"▲":"▼"} {Math.abs(c.delta)}%</span>
+        </div>
+        <div style={{fontSize:13,color:"#8b7f6c",marginTop:16,fontWeight:600}}>{c.l}</div>
+        <div className="price" style={{fontSize:27,marginTop:3,color:"var(--ink)"}}>{c.v}</div>
+        <div style={{fontSize:11.5,color:"#a99c86",marginTop:3}}>vs periode sebelumnya</div>
+      </div>
+    ))}
+  </div>);
+}
+
+/* ---- area chart ---- */
+function RevenueCard({d}){
+  const W_=620,H=210,pad=8;
+  const vals=d.series.map(s=>s.v);const max=Math.max(...vals)*1.12;
+  const n=d.series.length;
+  const X=i=>pad+(i*(W_-pad*2)/(n-1));
+  const Y=v=>H-12-(v/max)*(H-40);
+  const pts=d.series.map((s,i)=>[X(i),Y(s.v)]);
+  const line=pts.map((p,i)=>(i?"L":"M")+p[0].toFixed(1)+" "+p[1].toFixed(1)).join(" ");
+  const area=line+` L${X(n-1).toFixed(1)} ${H} L${X(0).toFixed(1)} ${H} Z`;
+  const peak=vals.indexOf(Math.max(...vals));
+  return(
+    <div className="card" style={{padding:"20px 22px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div><div style={{fontWeight:700,fontSize:16}}>Tren Pendapatan</div><div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2}}>{d.seriesLabel}</div></div>
+        <div style={{textAlign:"right"}}><div className="price" style={{fontSize:22,color:"var(--coffee)"}}>{rp(d.rev)}</div><div style={{fontSize:12,color:"var(--green-ok)",fontWeight:700}}>▲ {d.dRev}% total</div></div>
+      </div>
+      <svg viewBox={`0 0 ${W_} ${H}`} width="100%" height="210" preserveAspectRatio="none" style={{marginTop:14,overflow:"visible"}}>
+        <defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="var(--green-700)" stopOpacity="0.28"/><stop offset="100%" stopColor="var(--green-700)" stopOpacity="0"/></linearGradient></defs>
+        {[0,1,2,3].map(i=><line key={i} x1="0" x2={W_} y1={12+i*(H-24)/3} y2={12+i*(H-24)/3} stroke="var(--cream-200)" strokeWidth="1"/>)}
+        <path d={area} fill="url(#g1)"/>
+        <path d={line} fill="none" stroke="var(--green-700)" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"/>
+        {pts.map((p,i)=><circle key={i} cx={p[0]} cy={p[1]} r={i===peak?5:3.2} fill={i===peak?"var(--gold)":"#fff"} stroke="var(--green-700)" strokeWidth="2.5"/>)}
+        <g transform={`translate(${pts[peak][0]},${pts[peak][1]-14})`}><rect x="-34" y="-22" width="68" height="20" rx="6" fill="var(--green-900)"/><text x="0" y="-8" textAnchor="middle" fill="#fff" fontSize="11" fontWeight="700" fontFamily="Baloo 2">{rpShort(vals[peak])}</text></g>
+      </svg>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:8,fontSize:11.5,color:"#a99c86",fontWeight:600}}>
+        {d.series.map(s=><span key={s.x}>{s.x}</span>)}
+      </div>
+    </div>
+  );
+}
+
+/* ---- donut: payment method ---- */
+function PaymentCard(){
+  const data=[{l:"QRIS",pct:64,c:"var(--green-700)"},{l:"Bayar di Kasir",pct:36,c:"var(--gold-600)"}];
+  const r=58,cx=80,cy=80,circ=2*Math.PI*r;let off=0;
+  return(
+    <div className="card" style={{padding:"20px 22px",display:"flex",flexDirection:"column"}}>
+      <div style={{fontWeight:700,fontSize:16}}>Metode Pembayaran</div>
+      <div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2}}>Distribusi transaksi</div>
+      <div style={{display:"flex",alignItems:"center",gap:18,marginTop:16}}>
+        <svg width="160" height="160" viewBox="0 0 160 160">
+          <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--cream-200)" strokeWidth="20"/>
+          {data.map((s,i)=>{const len=circ*s.pct/100;const el=<circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={s.c} strokeWidth="20" strokeDasharray={`${len} ${circ-len}`} strokeDashoffset={-off} transform={`rotate(-90 ${cx} ${cy})`} strokeLinecap="butt"/>;off+=len;return el;})}
+          <text x={cx} y={cy-4} textAnchor="middle" fontSize="13" fill="#8b7f6c" fontWeight="600">Total</text>
+          <text x={cx} y={cy+16} textAnchor="middle" fontSize="20" fill="var(--coffee)" fontWeight="800" fontFamily="Baloo 2">612</text>
+        </svg>
+        <div style={{flex:1,display:"flex",flexDirection:"column",gap:14}}>
+          {data.map(s=>(<div key={s.l}>
+            <div style={{display:"flex",alignItems:"center",gap:8}}><span style={{width:11,height:11,borderRadius:4,background:s.c}}></span><span style={{fontSize:13.5,fontWeight:600,flex:1}}>{s.l}</span><span className="price" style={{fontSize:16}}>{s.pct}%</span></div>
+          </div>))}
+          <div style={{marginTop:4,padding:"10px 12px",background:"var(--green-ok-bg)",borderRadius:11,fontSize:12,color:"var(--green-ok)",fontWeight:600}}>QRIS jadi metode favorit pelanggan ✦</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---- top menu ---- */
+function TopMenu(){
+  const max=Math.max(...TOP.map(t=>t.sold));
+  return(
+    <div className="card" style={{padding:"20px 22px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><div style={{fontWeight:700,fontSize:16}}>Menu Terlaris</div><div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2}}>Berdasarkan porsi terjual</div></div>
+        <span className="pill" style={{background:"var(--cream)",color:"var(--coffee)"}}>7 hari</span>
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:15,marginTop:18}}>
+        {TOP.map((t,i)=>{const G=GLYPH[t.g];return(
+          <div key={t.id} style={{display:"flex",alignItems:"center",gap:13}}>
+            <span className="price" style={{fontSize:15,color:"#a99c86",width:18}}>{i+1}</span>
+            <div className="tile" style={{width:42,height:42,borderRadius:11,background:`linear-gradient(135deg,${t.grad[0]},${t.grad[1]})`,flex:"0 0 auto"}}><div className="glyph"><G c="rgba(255,255,255,.85)" s={22}/></div></div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline"}}><span style={{fontWeight:700,fontSize:14}}>{t.name}</span><span style={{fontSize:12.5,color:"#8b7f6c",fontWeight:600}}>{t.sold} porsi</span></div>
+              <div className="bar-track" style={{marginTop:7}}><div className="bar-fill" style={{width:(t.sold/max*100)+"%",background:i===0?"var(--gold-600)":"var(--green-600)"}}></div></div>
+            </div>
+            <span className="price" style={{fontSize:14,color:"var(--coffee)",width:74,textAlign:"right"}}>{rpShort(t.rev)}</span>
+          </div>);})}
+      </div>
+    </div>
+  );
+}
+
+/* ---- category bars ---- */
+function CategoryCard(){
+  return(
+    <div className="card" style={{padding:"20px 22px"}}>
+      <div style={{fontWeight:700,fontSize:16}}>Penjualan per Kategori</div>
+      <div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2}}>Porsi dari total</div>
+      <div style={{display:"flex",alignItems:"flex-end",gap:18,height:150,marginTop:22,padding:"0 6px"}}>
+        {CATSPLIT.map(c=>(
+          <div key={c.label} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",height:"100%",justifyContent:"flex-end"}}>
+            <span className="price" style={{fontSize:15,color:"var(--coffee)"}}>{c.pct}%</span>
+            <div className="hbar" style={{width:"70%",height:(c.pct/48*100)+"%",background:c.c,borderRadius:"9px 9px 0 0",marginTop:6}}></div>
+          </div>))}
+      </div>
+      <div style={{display:"flex",gap:10,marginTop:12}}>
+        {CATSPLIT.map(c=>(<div key={c.label} style={{flex:1,textAlign:"center"}}><div style={{fontSize:11.5,fontWeight:700,color:"#6f6353"}}>{c.label}</div></div>))}
+      </div>
+    </div>
+  );
+}
+
+/* ---- live transactions feed ---- */
+function LiveFeed(){
+  const [orders,setOrders]=useState(W.getOrders());
+  useEffect(()=>{W.onChange(()=>setOrders(W.getOrders()));},[]);
+  const META={[W.STATUS.WAIT_PAY]:{c:"var(--orange-600)",bg:"#F8EAD6"},[W.STATUS.PAID]:{c:"var(--green-ok)",bg:"var(--green-ok-bg)"},[W.STATUS.COOKING]:{c:"var(--blue)",bg:"#E0EAF0"},[W.STATUS.DONE]:{c:"#6f6353",bg:"#ECE5D5"}};
+  return(
+    <div className="card" style={{padding:"20px 22px",marginTop:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+        <div><div style={{fontWeight:700,fontSize:16}}>Transaksi Terbaru</div><div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2}}>Langsung dari kasir</div></div>
+        <span className="pill" style={{background:"var(--green-ok-bg)",color:"var(--green-ok)"}}><span style={{width:7,height:7,borderRadius:9,background:"var(--green-ok)"}}></span>LIVE</span>
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:13.5,minWidth:540}}>
+          <thead><tr style={{textAlign:"left",color:"#a99c86",fontSize:12,fontWeight:700}}>
+            <th style={{padding:"12px 8px"}}>PESANAN</th><th style={{padding:"12px 8px"}}>MEJA</th><th style={{padding:"12px 8px"}}>ITEM</th><th style={{padding:"12px 8px"}}>METODE</th><th style={{padding:"12px 8px"}}>STATUS</th><th style={{padding:"12px 8px",textAlign:"right"}}>TOTAL</th></tr></thead>
+          <tbody>
+            {orders.slice(0,8).map(o=>{const m=META[o.status];return(
+              <tr key={o.id} style={{borderTop:"1px solid var(--line)"}}>
+                <td style={{padding:"13px 8px",fontWeight:700}}>{o.id}</td>
+                <td style={{padding:"13px 8px"}}><span className="price" style={{color:"var(--green-700)"}}>{String(o.table).padStart(2,"0")}</span></td>
+                <td style={{padding:"13px 8px",color:"#6f6353"}}>{o.items.reduce((a,b)=>a+b.qty,0)} item</td>
+                <td style={{padding:"13px 8px"}}>{o.method==="qris"?"QRIS":"Kasir"}</td>
+                <td style={{padding:"13px 8px"}}><span className="pill" style={{color:m.c,background:m.bg}}>{o.status}</span></td>
+                <td style={{padding:"13px 8px",textAlign:"right"}}><span className="price" style={{color:"var(--coffee)"}}>{rp(o.total+2000)}</span></td>
+              </tr>);})}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ LAPORAN PENJUALAN ============================ */
+const FULLDAY=["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"];
+const ORD_BY_DAY=[64,72,69,84,98,118,107];
+function SalesReport(){
+  const [tab,setTab]=useState("week");
+  const wk=DATA.week.series;
+  const rows=wk.map((s,i)=>{const disc=Math.round(s.v*0.055);return {day:FULLDAY[i],date:(i+2)+" Jun 2026",orders:ORD_BY_DAY[i],gross:s.v,disc:disc,net:s.v-disc};});
+  const tot={orders:rows.reduce((a,r)=>a+r.orders,0),gross:rows.reduce((a,r)=>a+r.gross,0),disc:rows.reduce((a,r)=>a+r.disc,0),net:rows.reduce((a,r)=>a+r.net,0)};
+  const sum=[
+    {l:"Pendapatan Bersih",v:rp(tot.net),c:"var(--green-700)",bg:"#E4EEE4",ico:I.wallet},
+    {l:"Total Pesanan",v:tot.orders.toLocaleString("id-ID"),c:"var(--coffee)",bg:"#F1E6D6",ico:I.bag},
+    {l:"Rata-rata / Pesanan",v:rp(Math.round(tot.net/tot.orders)),c:"var(--blue)",bg:"#E0EAF0",ico:I.avg},
+    {l:"Total Diskon",v:rp(tot.disc),c:"var(--orange-600)",bg:"#F8EAD6",ico:I.cube},
+  ];
+  const tabs=[{k:"week",l:"Minggu Ini"},{k:"last",l:"Minggu Lalu"},{k:"month",l:"Bulan Ini"}];
+  const pay=[{l:"QRIS",o:392,v:Math.round(tot.net*0.64)},{l:"Bayar di Kasir",o:220,v:Math.round(tot.net*0.36)}];
+  return(<>
+    <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 28px",borderBottom:"1px solid var(--line)",background:"var(--paper-2)",flexWrap:"wrap",gap:14}}>
+      <div><div className="brand" style={{fontSize:23,fontWeight:700}}>Laporan Penjualan</div>
+      <div style={{fontSize:13,color:"#8b7f6c",marginTop:2}}>Rincian performa penjualan & transaksi</div></div>
+      <div style={{display:"flex",alignItems:"center",gap:12}}>
+        <div style={{display:"flex",gap:3,background:"var(--cream-200)",padding:4,borderRadius:13}}>
+          {tabs.map(t=><button key={t.k} className={"rangebtn"+(tab===t.k?" on":"")} onClick={()=>setTab(t.k)}>{t.l}</button>)}
+        </div>
+        <button className="btn-green" style={{border:"none",cursor:"pointer",borderRadius:12,padding:"11px 16px",fontWeight:700,fontSize:13.5,display:"flex",alignItems:"center",gap:8}}>{I.download()}Ekspor CSV</button>
+      </div>
+    </header>
+    <div style={{flex:1,overflowY:"auto",padding:"22px 28px 40px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(210px,1fr))",gap:18}}>
+        {sum.map(c=>(<div key={c.l} className="card kpi">
+          <div style={{width:42,height:42,borderRadius:12,background:c.bg,color:c.c,display:"grid",placeItems:"center"}}>{c.ico()}</div>
+          <div style={{fontSize:13,color:"#8b7f6c",marginTop:14,fontWeight:600}}>{c.l}</div>
+          <div className="price" style={{fontSize:25,marginTop:3}}>{c.v}</div>
+        </div>))}
+      </div>
+      <div className="card" style={{marginTop:18,padding:"20px 22px"}}>
+        <div style={{fontWeight:700,fontSize:16,marginBottom:4}}>Rincian Harian</div>
+        <div style={{fontSize:12.5,color:"#8b7f6c",marginBottom:8}}>7 hari terakhir</div>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:13.5,minWidth:580}}>
+            <thead><tr style={{textAlign:"left",color:"#a99c86",fontSize:12,fontWeight:700}}>
+              <th style={{padding:"11px 8px"}}>HARI</th><th style={{padding:"11px 8px",textAlign:"right"}}>PESANAN</th><th style={{padding:"11px 8px",textAlign:"right"}}>KOTOR</th><th style={{padding:"11px 8px",textAlign:"right"}}>DISKON</th><th style={{padding:"11px 8px",textAlign:"right"}}>BERSIH</th></tr></thead>
+            <tbody>
+              {rows.map(r=>(<tr key={r.day} className="rtr">
+                <td><div style={{fontWeight:700}}>{r.day}</div><div style={{fontSize:11.5,color:"#a99c86"}}>{r.date}</div></td>
+                <td style={{textAlign:"right",color:"#6f6353"}}>{r.orders}</td>
+                <td style={{textAlign:"right"}}>{rp(r.gross)}</td>
+                <td style={{textAlign:"right",color:"var(--orange-600)"}}>−{rp(r.disc)}</td>
+                <td style={{textAlign:"right"}}><span className="price" style={{color:"var(--coffee)"}}>{rp(r.net)}</span></td>
+              </tr>))}
+              <tr style={{borderTop:"2px solid var(--green-800)"}}>
+                <td style={{padding:"13px 8px",fontWeight:800}}>Total</td>
+                <td style={{padding:"13px 8px",textAlign:"right",fontWeight:800}}>{tot.orders}</td>
+                <td style={{padding:"13px 8px",textAlign:"right",fontWeight:800}}>{rp(tot.gross)}</td>
+                <td style={{padding:"13px 8px",textAlign:"right",fontWeight:800,color:"var(--orange-600)"}}>−{rp(tot.disc)}</td>
+                <td style={{padding:"13px 8px",textAlign:"right"}}><span className="price" style={{fontSize:16,color:"var(--coffee)"}}>{rp(tot.net)}</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="grid2" style={{display:"grid",gridTemplateColumns:"1.25fr 1fr",gap:18,marginTop:18}}>
+        <TopMenu/>
+        <div className="card" style={{padding:"20px 22px"}}>
+          <div style={{fontWeight:700,fontSize:16}}>Ringkasan Metode Bayar</div>
+          <div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2,marginBottom:16}}>Total pendapatan per metode</div>
+          {pay.map(p=>(<div key={p.l} style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 0",borderTop:"1px solid var(--line)"}}>
+            <div><div style={{fontWeight:700,fontSize:14}}>{p.l}</div><div style={{fontSize:12,color:"#8b7f6c",marginTop:2}}>{p.o} transaksi</div></div>
+            <span className="price" style={{fontSize:16,color:"var(--coffee)"}}>{rp(p.v)}</span></div>))}
+          <div style={{marginTop:14,padding:"12px 14px",background:"var(--green-ok-bg)",borderRadius:12,fontSize:12.5,color:"var(--green-ok)",fontWeight:600}}>QRIS menyumbang 64% dari total pendapatan minggu ini.</div>
+        </div>
+      </div>
+    </div>
+  </>);
+}
+
+/* ============================ PENGATURAN ============================ */
+function Toggle({on,onClick}){return(<div className="switch" onClick={onClick} style={{background:on?"var(--green-ok)":"var(--cream-300)"}}><i style={{left:on?20:2}}></i></div>);}
+function Field({label,children}){return(<div><label style={{fontSize:12.5,fontWeight:700,color:"#6f6353"}}>{label}</label><div style={{marginTop:6}}>{children}</div></div>);}
+function SettingsSection({title,desc,children}){return(
+  <div className="card" style={{padding:"22px 24px",marginBottom:18}}>
+    <div style={{fontWeight:700,fontSize:16}}>{title}</div>
+    {desc&&<div style={{fontSize:12.5,color:"#8b7f6c",marginTop:2,marginBottom:18}}>{desc}</div>}
+    {children}
+  </div>);}
+function Settings(){
+  const [f,setF]=useState({name:"Warbul Coffee",branch:"Dipatiukur",addr:"Jl. Dipatiukur No. 42, Bandung",phone:"0812-3456-7890",
+    open:"08:00",close:"22:00",merchant:"WARBUL COFFEE DIPATIUKUR",fee:2000,tax:0,
+    qris:true,kasir:true,nOrder:true,nStock:true,nReport:false});
+  const set=(k,v)=>setF(s=>({...s,[k]:v}));
+  const [saved,setSaved]=useState(false);
+  const tRow=(k,label,desc)=>(<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"13px 0",borderTop:"1px solid var(--line)"}}>
+    <div><div style={{fontWeight:600,fontSize:14}}>{label}</div><div style={{fontSize:12,color:"#8b7f6c",marginTop:2}}>{desc}</div></div><Toggle on={f[k]} onClick={()=>set(k,!f[k])}/></div>);
+  return(<>
+    <header style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"20px 28px",borderBottom:"1px solid var(--line)",background:"var(--paper-2)"}}>
+      <div><div className="brand" style={{fontSize:23,fontWeight:700}}>Pengaturan</div>
+      <div style={{fontSize:13,color:"#8b7f6c",marginTop:2}}>Kelola profil toko, pembayaran & notifikasi</div></div>
+      <button onClick={()=>{setSaved(true);setTimeout(()=>setSaved(false),1800);}} className="btn-green" style={{border:"none",cursor:"pointer",borderRadius:12,padding:"11px 18px",fontWeight:700,fontSize:13.5}}>{saved?"✓ Tersimpan":"Simpan Perubahan"}</button>
+    </header>
+    <div style={{flex:1,overflowY:"auto",padding:"22px 28px 40px"}}>
+      <div style={{maxWidth:760}}>
+        <SettingsSection title="Profil Toko" desc="Informasi cabang yang tampil di struk & menu">
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16}}>
+            <Field label="Nama Toko"><input className="fld" value={f.name} onChange={e=>set("name",e.target.value)}/></Field>
+            <Field label="Cabang"><input className="fld" value={f.branch} onChange={e=>set("branch",e.target.value)}/></Field>
+            <div style={{gridColumn:"1 / -1"}}><Field label="Alamat"><input className="fld" value={f.addr} onChange={e=>set("addr",e.target.value)}/></Field></div>
+            <Field label="Telepon"><input className="fld" value={f.phone} onChange={e=>set("phone",e.target.value)}/></Field>
+            <Field label="Jam Operasional"><div style={{display:"flex",alignItems:"center",gap:8}}><input className="fld" type="time" value={f.open} onChange={e=>set("open",e.target.value)}/><span style={{color:"#8b7f6c"}}>–</span><input className="fld" type="time" value={f.close} onChange={e=>set("close",e.target.value)}/></div></Field>
+          </div>
+        </SettingsSection>
+        <SettingsSection title="Pembayaran" desc="Metode yang bisa dipilih pelanggan & biaya tambahan">
+          {tRow("qris","QRIS","Pembayaran mandiri via scan QRIS pemilik")}
+          {tRow("kasir","Bayar di Kasir","Bayar tunai atau kartu langsung di kasir")}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginTop:18}}>
+            <Field label="Nama Merchant QRIS"><input className="fld" value={f.merchant} onChange={e=>set("merchant",e.target.value)}/></Field>
+            <Field label="Biaya Layanan (Rp)"><input className="fld" type="number" value={f.fee} onChange={e=>set("fee",Number(e.target.value))}/></Field>
+          </div>
+        </SettingsSection>
+        <SettingsSection title="Notifikasi" desc="Pemberitahuan yang dikirim ke dasbor pemilik">
+          {tRow("nOrder","Pesanan Baru","Notifikasi setiap ada pesanan masuk")}
+          {tRow("nStock","Stok Habis","Ingatkan saat menu ditandai habis")}
+          {tRow("nReport","Laporan Harian","Kirim ringkasan penjualan tiap tutup toko")}
+        </SettingsSection>
+      </div>
+    </div>
+  </>);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

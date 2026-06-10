@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Warbul local db
+warbul.db
+warbul.db-*
+*.db
+*.db-shm
+*.db-wal
+
+# keep the example (no secrets); the real .env stays ignored
+!.env.example

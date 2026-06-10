@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "warkop-warbul.vercel.app" }],
+      "destination": "https://warkop-warbul.web.id/",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "warkop-warbul.vercel.app" }],
+      "destination": "https://warkop-warbul.web.id/:path*",
+      "permanent": true
+    }
+  ]
+}

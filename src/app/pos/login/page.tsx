@@ -31,10 +31,14 @@ function LoginForm() {
       setErr(error.message || "Username atau kata sandi salah");
       return;
     }
-    // Honor an explicit redirect target; otherwise route owners to their
-    // dashboard and cashiers to the POS.
+    // Route owners to /owner and cashiers to /pos.
+    // Only honour `next` when it targets the user's own surface — a `next=/pos`
+    // set by the proxy when an unauthenticated owner visits `/` should not
+    // override the owner's correct destination.
     const role = (data?.user as { role?: string } | undefined)?.role;
-    const dest = next || (role === "owner" ? "/owner" : "/pos");
+    const isOwner = role === "owner";
+    const validNext = next && (isOwner ? next.startsWith("/owner") : !next.startsWith("/owner"));
+    const dest = validNext ? next : (isOwner ? "/owner" : "/pos");
     router.push(dest);
     router.refresh();
   }

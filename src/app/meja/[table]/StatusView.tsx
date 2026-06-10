@@ -4,7 +4,7 @@ import type { JSX } from "react";
 import type { Member, Order } from "@/lib/types";
 import { ORDER_STATUS } from "@/lib/types";
 import { Stepper, StampCard, ReceiptModal, Icons } from "@/components";
-import { getMember, getOrder, pollPakasir } from "@/lib/api";
+import { getMember, getOrder, patchOrder, pollPakasir } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
 import { rupiah, SERVICE_FEE } from "@/lib/constants";
 import { CartHeader, OptsLine, Row, pad2 } from "./shared";
@@ -20,6 +20,8 @@ export default function StatusView({ orderId, onMenu }: StatusViewProps): JSX.El
   const [showQR, setShowQR] = useState(false);
   const [receipt, setReceipt] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [cancelStep, setCancelStep] = useState<"idle" | "confirm">("idle");
+  const [cancelBusy, setCancelBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -278,6 +280,54 @@ export default function StatusView({ orderId, onMenu }: StatusViewProps): JSX.El
             <div style={{ height: 1, background: "var(--line)", margin: "11px 0" }} />
             <Row k="Total" v={rupiah(order.total)} big />
           </div>
+          {order.status === ORDER_STATUS.WAIT_PAY && !order.paid && (
+            <div style={{ marginTop: 14, border: cancelStep === "confirm" ? "1.5px solid #DC2626" : "1.5px dashed #C9B89A", borderRadius: 14, padding: "13px 15px", background: cancelStep === "confirm" ? "#FEF2F2" : "transparent" }}>
+              {cancelStep === "idle" ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                  <span style={{ fontSize: 12.5, color: "#8b7f6c" }}>Salah pesan atau ingin mengubah?</span>
+                  <button
+                    type="button"
+                    onClick={() => setCancelStep("confirm")}
+                    style={{ border: "1.5px solid #DC2626", background: "transparent", color: "#DC2626", fontWeight: 700, fontSize: 12.5, padding: "7px 14px", borderRadius: 9, cursor: "pointer", whiteSpace: "nowrap", fontFamily: "inherit" }}
+                  >
+                    Batalkan Pesanan
+                  </button>
+                </div>
+              ) : (
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "#991B1B", marginBottom: 10 }}>Yakin ingin membatalkan pesanan ini?</div>
+                  <div style={{ display: "flex", gap: 9, justifyContent: "center" }}>
+                    <button
+                      type="button"
+                      disabled={cancelBusy}
+                      onClick={() => setCancelStep("idle")}
+                      style={{ border: "1.5px solid #D1D5DB", background: "#fff", color: "#555", fontWeight: 600, fontSize: 13, padding: "8px 18px", borderRadius: 9, cursor: "pointer", fontFamily: "inherit" }}
+                    >
+                      Tidak
+                    </button>
+                    <button
+                      type="button"
+                      disabled={cancelBusy}
+                      onClick={async () => {
+                        setCancelBusy(true);
+                        try {
+                          await patchOrder(orderId, { status: ORDER_STATUS.CANCELLED });
+                          onMenu();
+                        } catch {
+                          setCancelBusy(false);
+                          setCancelStep("idle");
+                        }
+                      }}
+                      style={{ border: "none", background: "#DC2626", color: "#fff", fontWeight: 700, fontSize: 13, padding: "8px 18px", borderRadius: 9, cursor: cancelBusy ? "not-allowed" : "pointer", opacity: cancelBusy ? 0.6 : 1, fontFamily: "inherit" }}
+                    >
+                      {cancelBusy ? "Membatalkan…" : "Ya, Batalkan"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <button
             type="button"
             onClick={onMenu}

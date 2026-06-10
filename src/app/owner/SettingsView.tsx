@@ -145,10 +145,9 @@ export function SettingsView() {
               </div>
             </Section>
 
-            <Section title="Notifikasi" desc="Pemberitahuan yang dikirim ke dasbor pemilik">
-              <ToggleRow k="notifyNewOrder" label="Pesanan Baru" desc="Notifikasi setiap ada pesanan masuk" />
-              <ToggleRow k="notifyOutOfStock" label="Stok Habis" desc="Ingatkan saat menu ditandai habis" />
-              <ToggleRow k="notifyDailyReport" label="Laporan Harian" desc="Kirim ringkasan penjualan tiap tutup toko" />
+            <Section title="Notifikasi" desc="Pemberitahuan yang muncul di panel notifikasi dasbor pemilik">
+              <ToggleRow k="notifyNewOrder" label="Pesanan Baru" desc="Tampilkan pesanan masuk di panel notifikasi" />
+              <ToggleRow k="notifyOutOfStock" label="Stok Menipis" desc="Tampilkan peringatan bahan baku di bawah batas minimum" />
             </Section>
           </div>
         )}

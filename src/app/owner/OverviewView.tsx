@@ -1,12 +1,15 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
-import { getAnalyticsSummary, reportCsvUrl } from "@/lib/api";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { getAnalyticsSummary, getSettings, reportCsvUrl } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
 import { rupiah } from "@/lib/constants";
 import { Icons, StatusPill } from "@/components";
 import type { AnalyticsSummary, SummaryRange } from "@/lib/analytics";
 import { AreaChart, Donut, TopMenuBars, CategoryBars } from "./charts";
 import type { JSX } from "react";
+import type { Order } from "@/lib/types";
+
+const NOTIF_LS_KEY = "warbul_notif_seen";
 
 // `cube` / `avg` are owner-only KPI glyphs not in the shared Icons set.
 function CubeIcon({ size = 22, color = "currentColor" }: { size?: number; color?: string }): JSX.Element {
@@ -41,16 +44,55 @@ const RANGE_NOTE: Record<SummaryRange, string> = {
 export function OverviewView({ userName }: { userName: string }) {
   const [range, setRange] = useState<SummaryRange>("today");
   const [data, setData] = useState<AnalyticsSummary | null>(null);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [lastSeen, setLastSeen] = useState(0);
+  const [notifyNewOrder, setNotifyNewOrder] = useState(true);
+  const [notifyOutOfStock, setNotifyOutOfStock] = useState(true);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const refetch = useCallback(() => {
     getAnalyticsSummary(range).then(setData).catch(() => {});
   }, [range]);
 
-  useEffect(() => {
-    refetch();
-  }, [refetch]);
-
+  useEffect(() => { refetch(); }, [refetch]);
   useLive(["orders", "menu"], refetch);
+
+  useEffect(() => {
+    const v = localStorage.getItem(NOTIF_LS_KEY);
+    if (v) setLastSeen(Number(v));
+    getSettings().then((s) => {
+      setNotifyNewOrder(s.notifyNewOrder);
+      setNotifyOutOfStock(s.notifyOutOfStock);
+    }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    function onMouseDown(e: MouseEvent) {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, [notifOpen]);
+
+  function openNotif() {
+    setNotifOpen((o) => {
+      if (!o) {
+        const now = Date.now();
+        setLastSeen(now);
+        localStorage.setItem(NOTIF_LS_KEY, String(now));
+      }
+      return !o;
+    });
+  }
+
+  const recentOrders: Order[] = data?.recent ?? [];
+  const lowStock = data?.lowStock ?? [];
+  const hasUnread =
+    (notifyNewOrder && recentOrders.some((o) => o.createdAt > lastSeen)) ||
+    (notifyOutOfStock && lowStock.length > 0);
 
   const firstName = userName.split(/\s+/)[0];
   const today = new Date().toLocaleDateString("id-ID", {
@@ -90,12 +132,26 @@ export function OverviewView({ userName }: { userName: string }) {
               </button>
             ))}
           </div>
-          <button className="owner-iconbtn">
-            <Icons.bell size={19} />
-            <span
-              style={{ position: "absolute", top: 9, right: 9, width: 8, height: 8, borderRadius: 9, background: "var(--orange)" }}
-            />
-          </button>
+          <div ref={notifRef} style={{ position: "relative" }}>
+            <button className="owner-iconbtn" onClick={openNotif} aria-label="Notifikasi">
+              <Icons.bell size={19} />
+              {hasUnread && (
+                <span style={{ position: "absolute", top: 9, right: 9, width: 8, height: 8, borderRadius: 9, background: "var(--orange)", border: "1.5px solid var(--paper-2)" }} />
+              )}
+            </button>
+            {notifOpen && (
+              <NotifPanel
+                orders={notifyNewOrder ? recentOrders : []}
+                lowStock={notifyOutOfStock ? lowStock : []}
+                lastSeen={lastSeen}
+                onMarkAll={() => {
+                  const now = Date.now();
+                  setLastSeen(now);
+                  localStorage.setItem(NOTIF_LS_KEY, String(now));
+                }}
+              />
+            )}
+          </div>
           <a href={reportCsvUrl("week")} download className="owner-exportbtn">
             <Icons.cart size={16} /> Ekspor
           </a>
@@ -164,6 +220,94 @@ export function OverviewView({ userName }: { userName: string }) {
         )}
       </div>
     </>
+  );
+}
+
+function timeAgo(t: number): string {
+  const d = Math.floor((Date.now() - t) / 1000);
+  if (d < 60) return d + "d lalu";
+  const m = Math.floor(d / 60);
+  if (m < 60) return m + "m lalu";
+  return Math.floor(m / 60) + "j lalu";
+}
+
+interface NotifPanelProps {
+  orders: Order[];
+  lowStock: AnalyticsSummary["lowStock"];
+  lastSeen: number;
+  onMarkAll: () => void;
+}
+
+function NotifPanel({ orders, lowStock, lastSeen, onMarkAll }: NotifPanelProps): JSX.Element {
+  const bothEmpty = orders.length === 0 && lowStock.length === 0;
+  return (
+    <div style={{
+      position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 100,
+      width: 320, background: "#fff", borderRadius: 16,
+      boxShadow: "0 16px 40px -8px rgba(0,0,0,.22)", border: "1px solid var(--cream-200)",
+      overflow: "hidden",
+    }}>
+      <div style={{ background: "var(--green-900)", padding: "12px 16px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ color: "var(--cream)", fontWeight: 700, fontSize: 13.5 }}>Notifikasi</span>
+        <button
+          onClick={onMarkAll}
+          style={{ background: "none", border: "none", cursor: "pointer", color: "rgba(244,237,217,.55)", fontSize: 11.5, fontWeight: 600, fontFamily: "inherit" }}
+        >
+          Tandai semua dibaca
+        </button>
+      </div>
+
+      {bothEmpty ? (
+        <div style={{ padding: "28px 16px", textAlign: "center", color: "#9CA3AF", fontSize: 13 }}>
+          Semua notifikasi dinonaktifkan atau belum ada data.
+        </div>
+      ) : (
+        <div style={{ maxHeight: 380, overflowY: "auto" }}>
+          {orders.length > 0 && (
+            <div>
+              <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "#9CA3AF", letterSpacing: ".08em" }}>PESANAN BARU</div>
+              {orders.map((o) => {
+                const unread = o.createdAt > lastSeen;
+                return (
+                  <div key={o.id} style={{
+                    padding: "9px 16px", display: "flex", gap: 10, alignItems: "flex-start",
+                    background: unread ? "#FFFBF0" : "#fff",
+                    borderLeft: `3px solid ${unread ? "var(--gold)" : "transparent"}`,
+                  }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: unread ? "var(--orange)" : "#D1D5DB", marginTop: 4, flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: unread ? 700 : 500, color: unread ? "var(--ink)" : "#6B7280" }}>
+                        {o.id} · {o.table === 0 ? "Takeaway" : `Meja ${o.table}`}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: "#9CA3AF", marginTop: 1 }}>
+                        {rupiah(o.total)} · {timeAgo(o.createdAt)}
+                      </div>
+                    </div>
+                    <StatusPill status={o.status} />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {lowStock.length > 0 && (
+            <div>
+              {orders.length > 0 && <div style={{ height: 1, background: "var(--cream-200)", margin: "4px 16px" }} />}
+              <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "#9CA3AF", letterSpacing: ".08em" }}>STOK MENIPIS</div>
+              {lowStock.map((item) => (
+                <div key={item.id} style={{ padding: "9px 16px", display: "flex", gap: 10, alignItems: "center", background: "#FFF7F0", borderLeft: "3px solid var(--orange)" }}>
+                  <span style={{ color: "var(--orange-600)", flexShrink: 0 }}>⚠</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{item.name}</div>
+                    <div style={{ fontSize: 11.5, color: "#9CA3AF" }}>Sisa {item.stock}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

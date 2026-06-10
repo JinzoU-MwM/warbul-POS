@@ -58,6 +58,18 @@ function Line({ k, v }: { k: string; v: string }): JSX.Element {
 export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): JSX.Element {
   const [payOpen, setPayOpen] = useState(false);
   const [receipt, setReceipt] = useState(false);
+  const [cancelBusy, setCancelBusy] = useState(false);
+
+  const canCancel = order.status === ORDER_STATUS.WAIT_PAY;
+
+  async function handleCancel() {
+    setCancelBusy(true);
+    try {
+      await onPatch(order.id, { status: ORDER_STATUS.CANCELLED });
+    } finally {
+      setCancelBusy(false);
+    }
+  }
 
   const claimed =
     order.method === "qris" && !!order.note && order.note.indexOf("verifikasi kasir") >= 0 && !order.paid;
@@ -82,7 +94,25 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
             </div>
           </div>
         </div>
-        <StatusPill status={order.status} />
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+          <StatusPill status={order.status} />
+          <button
+            type="button"
+            onClick={handleCancel}
+            disabled={!canCancel || cancelBusy}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              fontSize: 12, fontWeight: 700, padding: "5px 11px", borderRadius: 8,
+              border: canCancel ? "1.5px solid #DC2626" : "1.5px solid #E5E7EB",
+              background: "transparent",
+              color: canCancel ? "#DC2626" : "#D1D5DB",
+              cursor: canCancel ? "pointer" : "not-allowed",
+              fontFamily: "inherit",
+            }}
+          >
+            {canCancel ? "✕ Batalkan" : "🔒 Batalkan"}
+          </button>
+        </div>
       </div>
 
       {claimed && order.status === ORDER_STATUS.WAIT_PAY && (

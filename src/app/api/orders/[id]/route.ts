@@ -4,6 +4,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { getOrder, updateOrder } from "@/lib/store";
 import { getServerSession } from "@/lib/session";
+import { ORDER_STATUS } from "@/lib/types";
 import type { Order } from "@/lib/types";
 
 export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -27,6 +28,11 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     if (!existing) return NextResponse.json({ order: null }, { status: 404 });
 
     const patch = (await req.json()) as Partial<Order>;
+
+    if (patch.status === ORDER_STATUS.CANCELLED && existing.status !== ORDER_STATUS.WAIT_PAY) {
+      return NextResponse.json({ error: "Pesanan sudah dibayar, tidak bisa dibatalkan" }, { status: 409 });
+    }
+
     const order = await updateOrder(id, patch);
     return NextResponse.json({ order });
   } catch (err) {

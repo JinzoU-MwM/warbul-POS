@@ -95,6 +95,7 @@ export const ORDER_STATUS = {
   PAID: "Dibayar",
   COOKING: "Diproses",
   DONE: "Selesai",
+  CANCELLED: "Dibatalkan",
 } as const;
 
 export type OrderStatus = (typeof ORDER_STATUS)[keyof typeof ORDER_STATUS];
@@ -154,5 +155,4 @@ export interface StoreSettings {
   payKasir: boolean;
   notifyNewOrder: boolean;
   notifyOutOfStock: boolean;
-  notifyDailyReport: boolean;
 }

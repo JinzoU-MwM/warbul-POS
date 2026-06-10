@@ -13,5 +13,4 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   payKasir: true,
   notifyNewOrder: true,
   notifyOutOfStock: true,
-  notifyDailyReport: false,
 };

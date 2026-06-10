@@ -12,6 +12,7 @@ const STATUS_COLORS: Record<OrderStatus, PillColors> = {
   "Dibayar": { c: "var(--green-ok)", bg: "var(--green-ok-bg)" },
   "Diproses": { c: "var(--blue)", bg: "#E0EAF0" },
   "Selesai": { c: "#6f6353", bg: "#ECE5D5" },
+  "Dibatalkan": { c: "#9CA3AF", bg: "#F3F4F6" },
 };
 
 export interface StatusPillProps {

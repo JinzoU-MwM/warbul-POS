@@ -10,6 +10,7 @@ const REACHED: Record<OrderStatus, number> = {
   "Dibayar": 2,
   "Diproses": 3,
   "Selesai": 4,
+  "Dibatalkan": 0,
 };
 
 export interface StepperProps {

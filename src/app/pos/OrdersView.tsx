@@ -52,7 +52,7 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
 
   const list =
     filter === "active"
-      ? orders.filter((o) => o.status !== ORDER_STATUS.DONE)
+      ? orders.filter((o) => o.status !== ORDER_STATUS.DONE && o.status !== ORDER_STATUS.CANCELLED)
       : orders.filter((o) => o.status === filter);
 
   const selected = orders.find((o) => o.id === sel) ?? list[0] ?? orders[0] ?? null;

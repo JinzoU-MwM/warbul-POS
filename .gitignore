@@ -49,3 +49,12 @@ warbul.db-*
 
 # keep the example (no secrets); the real .env stays ignored
 !.env.example
+
+.vercel
+
+# Serena MCP tooling
+.serena/
+
+# stray local libsql/auth db artifacts
+/auth
+/auth-wal

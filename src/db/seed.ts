@@ -8,10 +8,9 @@ import {
   user, session, account, verification, modifierGroups, modifierOptions,
   ingredients, recipes,
 } from "./schema";
-import { computeTotals } from "../lib/pricing";
 import { DEFAULT_SETTINGS } from "../lib/store-defaults";
 import {
-  SEED_MENU, seedOrders, SEED_INGREDIENTS, SEED_PRODUCT_RECIPES, SEED_OPTION_RECIPES,
+  SEED_MENU, SEED_INGREDIENTS, SEED_PRODUCT_RECIPES, SEED_OPTION_RECIPES,
 } from "../lib/seed-data";
 import { DEFAULT_MODIFIER_GROUPS } from "../lib/modifiers";
 
@@ -75,30 +74,33 @@ async function main() {
   }
   console.log(`   ✓ ${DEFAULT_MODIFIER_GROUPS.length} modifier groups`);
 
-  // Demo orders
-  const now = Date.now();
-  for (const o of seedOrders()) {
-    const totals = computeTotals(o.items, o.promo?.amount ?? 0);
-    await db.insert(orders).values({
-      id: o.id, table: o.table, method: o.method, paid: o.paid, status: o.status,
-      payDetail: o.payDetail ?? null, note: o.note, subtotal: totals.subtotal,
-      service: totals.service, discount: totals.discount, total: totals.total,
-      promo: o.promo ?? null, phone: null, createdAt: now - o.ageMs,
-    });
-    for (const it of o.items) {
-      await db.insert(orderItems).values({
-        id: `${o.id}-${it.id}`, orderId: o.id, productId: it.id, name: it.name,
-        price: it.price, qty: it.qty, opts: it.opts,
-      });
-    }
-  }
-  console.log(`   ✓ 4 demo orders`);
-
   // Settings
   await db.insert(settings).values({ id: "store", data: DEFAULT_SETTINGS });
   console.log("   ✓ store settings");
 
-  // Users via Better Auth (request-free instance — no nextCookies plugin)
+  // Users via Better Auth (request-free instance — no nextCookies plugin).
+  // Credentials come from the environment so a real database is never seeded
+  // with the old well-known demo passwords. Set these before running db:seed.
+  const ownerUsername = process.env.SEED_OWNER_USERNAME || "owner";
+  const ownerName = process.env.SEED_OWNER_NAME || "Owner";
+  const ownerEmail = process.env.SEED_OWNER_EMAIL || `${ownerUsername}@warbul.local`;
+  const ownerPassword = process.env.SEED_OWNER_PASSWORD;
+  const kasirUsername = process.env.SEED_KASIR_USERNAME || "kasir";
+  const kasirName = process.env.SEED_KASIR_NAME || "Kasir";
+  const kasirEmail = process.env.SEED_KASIR_EMAIL || `${kasirUsername}@warbul.local`;
+  const kasirPassword = process.env.SEED_KASIR_PASSWORD;
+
+  if (!ownerPassword || !kasirPassword) {
+    throw new Error(
+      "Missing seed credentials. Set SEED_OWNER_PASSWORD and SEED_KASIR_PASSWORD " +
+        "(and optionally SEED_OWNER_USERNAME / SEED_KASIR_USERNAME / *_NAME / *_EMAIL) " +
+        "in your environment before running db:seed.",
+    );
+  }
+  if (ownerPassword.length < 8 || kasirPassword.length < 8) {
+    throw new Error("SEED_OWNER_PASSWORD and SEED_KASIR_PASSWORD must each be at least 8 characters.");
+  }
+
   const seedAuth = betterAuth({
     secret: process.env.BETTER_AUTH_SECRET,
     database: drizzleAdapter(db, {
@@ -111,16 +113,16 @@ async function main() {
   });
 
   await seedAuth.api.signUpEmail({
-    body: { email: "owner@warbul.local", password: "owner123", name: "Budi", username: "owner" },
+    body: { email: ownerEmail, password: ownerPassword, name: ownerName, username: ownerUsername },
   });
   await seedAuth.api.signUpEmail({
-    body: { email: "kasir@warbul.local", password: "kasir123", name: "Rani", username: "kasir" },
+    body: { email: kasirEmail, password: kasirPassword, name: kasirName, username: kasirUsername },
   });
   // Promote the owner account.
   const { eq } = await import("drizzle-orm");
-  await db.update(user).set({ role: "owner", emailVerified: true }).where(eq(user.username, "owner"));
-  await db.update(user).set({ emailVerified: true }).where(eq(user.username, "kasir"));
-  console.log("   ✓ users: owner/owner123 (Budi), kasir/kasir123 (Rani)");
+  await db.update(user).set({ role: "owner", emailVerified: true }).where(eq(user.username, ownerUsername));
+  await db.update(user).set({ emailVerified: true }).where(eq(user.username, kasirUsername));
+  console.log(`   ✓ users: ${ownerUsername} (owner), ${kasirUsername} (kasir)`);
 
   console.log("✅ Seed complete.");
   process.exit(0);

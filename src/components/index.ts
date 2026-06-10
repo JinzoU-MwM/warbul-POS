@@ -15,8 +15,6 @@ export { ModifierGroups } from "./ModifierGroups";
 export type { ModifierGroupsProps } from "./ModifierGroups";
 export { PromoBox } from "./PromoBox";
 export type { PromoBoxProps, PromoValue } from "./PromoBox";
-export { QRCodePlaceholder } from "./QRCodePlaceholder";
-export type { QRCodePlaceholderProps } from "./QRCodePlaceholder";
 export { Stepper } from "./Stepper";
 export type { StepperProps } from "./Stepper";
 export { StampCard } from "./StampCard";

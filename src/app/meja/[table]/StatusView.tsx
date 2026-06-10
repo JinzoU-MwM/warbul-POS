@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import type { Member, Order } from "@/lib/types";
 import { ORDER_STATUS } from "@/lib/types";
-import { Stepper, StampCard, QRCodePlaceholder, ReceiptModal, Icons } from "@/components";
+import { Stepper, StampCard, ReceiptModal, Icons } from "@/components";
 import { getMember, getOrder, pollPakasir } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
 import { rupiah, SERVICE_FEE } from "@/lib/constants";
@@ -120,7 +120,11 @@ export default function StatusView({ orderId, onMenu }: StatusViewProps): JSX.El
                 style={{ display: "block", margin: "0 auto" }}
               />
             ) : (
-              <QRCodePlaceholder size={180} />
+              <div style={{ padding: "34px 14px", color: "#8b7f6c", fontSize: 13, lineHeight: 1.65 }}>
+                Kode QRIS belum tersedia.
+                <br />
+                Coba buka lagi sebentar lagi, atau bayar langsung di kasir.
+              </div>
             )}
             <div style={{ marginTop: 14, fontSize: 12, color: "#8b7f6c" }}>Total Pembayaran</div>
             <div className="num" style={{ fontSize: 26, color: "var(--coffee)" }}>

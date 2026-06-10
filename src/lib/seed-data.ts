@@ -1,6 +1,5 @@
-// Shared seed data — used by the db seed script and the demo-reset endpoint.
+// Shared seed data — used by the db seed script (npm run db:seed).
 import type { Category, Glyph } from "./types";
-import { ORDER_STATUS } from "./types";
 
 export type SeedProduct = {
   id: string; name: string; price: number; cat: Category; g: Glyph;
@@ -79,31 +78,3 @@ export const SEED_OPTION_RECIPES: Record<string, { ingredientId: string; qty: nu
   "extra-rice": [{ ingredientId: "rice", qty: 150 }],
 };
 
-export type SeedOrder = {
-  id: string; table: number; method: string; paid: boolean; status: string;
-  note: string; payDetail?: string; ageMs: number;
-  promo?: { code: string; amount: number };
-  items: { id: string; name: string; price: number; qty: number; opts: string[] }[];
-};
-
-export function seedOrders(): SeedOrder[] {
-  return [
-    { id: "WB-104", table: 3, method: "qris", paid: false, status: ORDER_STATUS.WAIT_PAY, note: "Menunggu verifikasi kasir", ageMs: 90 * 1000,
-      items: [
-        { id: "k1", name: "Es Kopi Susu Warbul", price: 18000, qty: 2, opts: ["Large", "Sedikit Gula"] },
-        { id: "s1", name: "Kentang Goreng", price: 18000, qty: 1, opts: ["Saus Keju"] },
-      ] },
-    { id: "WB-103", table: 9, method: "kasir", paid: false, status: ORDER_STATUS.WAIT_PAY, note: "Menunggu pembayaran di kasir", ageMs: 5 * 60 * 1000,
-      items: [
-        { id: "m1", name: "Nasi Goreng Warbul", price: 33000, qty: 1, opts: ["Pedas", "+ Tambah Telur"] },
-        { id: "n1", name: "Matcha Latte", price: 26000, qty: 1, opts: [] },
-      ] },
-    { id: "WB-102", table: 1, method: "qris", paid: true, status: ORDER_STATUS.COOKING, payDetail: "QRIS terverifikasi", note: "Diteruskan ke dapur", ageMs: 12 * 60 * 1000, promo: { code: "NGOPI5", amount: 5000 },
-      items: [
-        { id: "k5", name: "Caramel Macchiato", price: 28000, qty: 1, opts: [] },
-        { id: "s3", name: "Roti Bakar Cokelat", price: 17000, qty: 2, opts: [] },
-      ] },
-    { id: "WB-101", table: 5, method: "kasir", paid: true, status: ORDER_STATUS.DONE, payDetail: "Tunai", note: "Pesanan selesai", ageMs: 26 * 60 * 1000,
-      items: [{ id: "k4", name: "Cappuccino", price: 24000, qty: 2, opts: ["Tanpa Gula"] }] },
-  ];
-}

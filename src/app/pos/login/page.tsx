@@ -96,9 +96,6 @@ function LoginForm() {
             {busy ? "Memproses…" : "Masuk"}
           </button>
 
-          <div style={{ marginTop: 16, fontSize: 11.5, color: "#a99c86", textAlign: "center", lineHeight: 1.6 }}>
-            Demo: <b>owner / owner123</b> · <b>kasir / kasir123</b>
-          </div>
         </form>
       </div>
     </div>

@@ -25,7 +25,7 @@ Three surfaces, one Next.js app, one database:
 ```bash
 npm install
 npm run db:push     # create the SQLite schema (warbul.db)
-npm run db:seed     # seed menu, demo orders, settings, and users
+npm run db:seed     # seed menu, ingredients, modifiers, settings, and admin users
 npm run dev         # http://localhost:3000
 ```
 
@@ -33,12 +33,17 @@ Then open a surface:
 - Customer: `/meja/7`
 - POS / Owner login: `/pos` → redirects to `/pos/login` (`/` also redirects here)
 
-### Demo credentials
+### Admin credentials
 
-| Username | Password | Role |
-|----------|----------|------|
-| `owner`  | `owner123` | owner (sees `/owner`) |
-| `kasir`  | `kasir123` | kasir |
+The owner and cashier logins are created by `db:seed` **from environment variables** —
+there are no built-in passwords. Set these before seeding (passwords must be ≥ 8 chars):
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `SEED_OWNER_USERNAME` / `SEED_OWNER_PASSWORD` | owner login (sees `/owner`) | `owner` / _required_ |
+| `SEED_KASIR_USERNAME` / `SEED_KASIR_PASSWORD` | cashier login | `kasir` / _required_ |
+
+`SEED_OWNER_NAME` / `SEED_KASIR_NAME` / `SEED_OWNER_EMAIL` / `SEED_KASIR_EMAIL` are optional.
 
 ## Scripts
 
@@ -59,9 +64,9 @@ Products are made from **ingredients** (beans, milk, cups, …) via **recipes** 
 ## Architecture notes
 
 - **Money math is server-authoritative.** `computeTotals` / `unitPrice` / `applyPromo` (in `src/lib/`) are the single source of truth; the server recomputes every order total on creation and ignores client-sent `paid`/`status` from anonymous customers (`src/lib/store.ts`, `src/app/api/orders/route.ts`).
-- **Real-time** uses an in-process pub/sub (`src/lib/events.ts`) streamed over SSE. This assumes a **single Node instance** (`next start`), which is correct for one cafe.
-  - On **serverless** (e.g. Vercel functions), a long-lived SSE connection + in-memory bus won't work across invocations — deploy as a Node server, or have clients fall back to polling `/api/orders`. The client hook is `src/lib/use-live.ts`.
-- **Auth**: `src/middleware.ts` optimistically guards `/pos` and `/owner`; pages re-check the session server-side (and `/owner` enforces the `owner` role). _(Next 16 prints a deprecation notice suggesting the `proxy` file convention; `middleware.ts` still works on 16.x.)_
+- **Real-time** uses an in-process pub/sub (`src/lib/events.ts`) streamed over SSE for **instant** updates. This only works as a **single long-lived Node process** (`next start` / a persistent host), because the event bus is in-memory.
+  - The client hook (`src/lib/use-live.ts`) **also polls** on an interval as a fallback, so it stays correct on **serverless** (e.g. Vercel functions), where SSE can't see writes made in other instances. On serverless set `NEXT_PUBLIC_DISABLE_SSE=1` so clients skip the dead SSE connection and rely on polling alone.
+- **Auth**: `src/proxy.ts` (the Next 16 `proxy` file convention) optimistically guards `/pos` and `/owner`; pages re-check the session server-side (and `/owner` enforces the `owner` role).
 - **Design source** is kept under `design-reference/` (the original HTML/CSS/JS prototypes + screenshots) for reference.
 
 ## Deployment
@@ -71,14 +76,25 @@ Set in the environment:
 ```
 DATABASE_URL=file:warbul.db          # or a Turso libsql:// URL
 DATABASE_AUTH_TOKEN=...              # only for hosted Turso
+# (TURSO_DATABASE_URL / TURSO_AUTH_TOKEN are also read — e.g. Vercel's Turso integration)
 BETTER_AUTH_SECRET=<random-strong-secret>
 BETTER_AUTH_URL=https://your-domain
 NEXT_PUBLIC_APP_URL=https://your-domain
 SLUG=<pakasir-project-slug>          # Pakasir QRIS gateway
 API_KEY=<pakasir-api-key>
+# Only needed when running db:seed (not at runtime):
+SEED_OWNER_PASSWORD=<strong>
+SEED_KASIR_PASSWORD=<strong>
 ```
 
-Run `npm run build && npm run start` on a persistent Node host so SSE works.
+**Persistent Node host** (Railway/Render/Fly/VPS) — recommended for one cafe:
+run `npm run build && npm run start`. SSE delivers instant updates.
+
+**Vercel (serverless)** — works, but SSE can't bridge function instances, so
+real-time relies on the client's polling fallback. Set `NEXT_PUBLIC_DISABLE_SSE=1`
+so clients don't hold dead SSE connections open. Provision the DB once from your
+machine (pointing the env at the prod Turso DB): `npm run db:push && npm run db:seed`.
+Point Pakasir's webhook at `https://<your-domain>/api/pakasir/webhook`.
 
 ## QRIS payments (Pakasir)
 

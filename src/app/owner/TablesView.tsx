@@ -149,18 +149,14 @@ function Face({ table, qr, display }: { table: number; qr: string; display: stri
         <span className="brand" style={{ fontWeight: 800, fontSize: 24, color: "var(--gold)" }}>Warbul</span>
       </div>
 
-      <div className="qrm-scanh brand">Scan &amp; Pesan</div>
-      <div className="qrm-scansub">Pindai QR di bawah dengan kamera HP-mu</div>
+      <div className="qrm-hero-n brand">{t}</div>
+      <div className="qrm-hero-lbl">NOMOR MEJA</div>
+      <div className="qrm-scan-hint">↓ Scan untuk pesan</div>
 
       <div className="qrm-qrcard">
         <span className="qrm-qrtag">★ MENU DIGITAL</span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={qr} alt={`QR Meja ${t}`} width={150} height={150} style={{ display: "block" }} />
-      </div>
-
-      <div className="qrm-badge">
-        <span style={{ fontSize: 10, fontWeight: 700, opacity: 0.7 }}>KAMU DI</span>
-        <span className="qrm-badge-n brand">Meja {t}</span>
       </div>
 
       <div className="qrm-steps">
@@ -198,12 +194,13 @@ function Sticker({ table, qr }: { table: number; qr: string }): JSX.Element {
         <Image src="/warbul-logo.png" alt="Warbul" width={26} height={26} style={{ borderRadius: "50%", display: "block" }} />
         <span className="brand" style={{ fontWeight: 800, color: "var(--gold)", fontSize: 17 }}>Warbul</span>
       </div>
+      <div className="qrm-hero-n brand" style={{ fontSize: 52, letterSpacing: -2 }}>{t}</div>
+      <div className="qrm-hero-lbl" style={{ fontSize: 7, letterSpacing: "0.12em", marginBottom: 6 }}>NOMOR MEJA</div>
       <div className="qrm-qs">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={qr} alt={`QR Meja ${t}`} width={116} height={116} style={{ display: "block" }} />
       </div>
-      <div className="qrm-tb brand">Meja {t}</div>
-      <div className="qrm-sc">Scan untuk lihat menu &amp; pesan</div>
+      <div className="qrm-sc">Scan untuk pesan</div>
     </div>
   );
 }
@@ -237,12 +234,11 @@ function QrStyles() {
       .qrm-face{background:var(--green-800);color:var(--cream);border-radius:18px;padding:26px 24px 22px;text-align:center;position:relative;overflow:hidden}
       .qrm-bgbean{position:absolute;opacity:.08;line-height:0}
       .qrm-logorow{display:flex;align-items:center;justify-content:center;gap:10px;position:relative}
-      .qrm-scanh{font-weight:800;font-size:30px;color:var(--gold);line-height:1;margin-top:14px;position:relative}
-      .qrm-scansub{font-size:12.5px;opacity:.82;margin-top:5px;position:relative}
+      .qrm-hero-n{font-size:90px;font-weight:900;color:var(--gold);line-height:1;letter-spacing:-3px;margin-top:10px;position:relative}
+      .qrm-hero-lbl{font-size:9px;font-weight:700;opacity:.6;letter-spacing:.15em;margin-top:-2px;position:relative}
+      .qrm-scan-hint{font-size:12px;opacity:.75;margin-top:10px;position:relative}
       .qrm-qrcard{background:#fff;border-radius:16px;padding:16px;margin:16px auto 0;width:max-content;position:relative;box-shadow:0 10px 24px -12px rgba(0,0,0,.5)}
       .qrm-qrtag{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--coffee-900);font-size:10px;font-weight:800;padding:3px 11px;border-radius:999px;letter-spacing:.04em;white-space:nowrap}
-      .qrm-badge{display:inline-flex;align-items:center;gap:9px;background:var(--gold);color:var(--coffee-900);border-radius:14px;padding:9px 16px;margin-top:16px;position:relative}
-      .qrm-badge-n{font-weight:800;font-size:22px;line-height:1}
       .qrm-steps{display:flex;justify-content:center;gap:8px;margin-top:16px;position:relative}
       .qrm-stepc{flex:1;max-width:88px}
       .qrm-stepn{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.14);color:var(--gold);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
@@ -253,7 +249,7 @@ function QrStyles() {
 
       /* sticker sheet */
       .qrm-sheet{display:grid;grid-template-columns:repeat(2,1fr);gap:18px;max-width:560px}
-      .qrm-sticker{background:var(--green-800);color:var(--cream);border-radius:18px;padding:18px;text-align:center;position:relative;overflow:hidden}
+      .qrm-sticker{background:var(--green-800);color:var(--cream);border-radius:18px;padding:20px 18px;text-align:center;position:relative;overflow:hidden}
       .qrm-qs{background:#fff;border-radius:12px;padding:11px;width:max-content;margin:11px auto 0}
       .qrm-tb{display:inline-block;background:var(--gold);color:var(--coffee-900);font-weight:800;font-size:15px;padding:5px 14px;border-radius:10px;margin-top:11px}
       .qrm-sc{font-size:11px;opacity:.8;margin-top:9px}
@@ -266,7 +262,7 @@ function QrStyles() {
         .qrm-tent{box-shadow:none;width:118mm;margin:0 auto}
         .qrm-sheet{max-width:none;gap:10mm}
         .qrm-sticker{break-inside:avoid}
-        .qrm-face,.qrm-sticker,.qrm-badge,.qrm-qrcard,.qrm-tb,.qrm-stepn,.qrm-pay{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+        .qrm-face,.qrm-sticker,.qrm-hero-n,.qrm-qrcard,.qrm-stepn,.qrm-pay{-webkit-print-color-adjust:exact;print-color-adjust:exact}
       }
     `}</style>
   );

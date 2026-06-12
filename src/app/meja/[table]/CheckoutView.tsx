@@ -142,7 +142,7 @@ export default function CheckoutView({
               display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <span style={{ fontSize: 18 }}>🎉</span>
+                <Icons.gift size={18} color="var(--green-700)" />
                 <div>
                   <div style={{ fontWeight: 700, color: "#15803d", fontSize: 13 }}>{a.name} · otomatis</div>
                 </div>

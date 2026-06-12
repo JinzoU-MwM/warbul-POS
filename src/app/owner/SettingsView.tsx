@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useRef, useState, type JSX, type ReactNode } from "react";
+import { useEffect, useState, type JSX, type ReactNode } from "react";
 import { getSettings, patchSettings } from "@/lib/api";
-import { Switch } from "@/components";
+import { Switch, Icons } from "@/components";
 import type { StoreSettings } from "@/lib/types";
 import { CategorySection } from "./CategorySection";
 import { ModifierAdminView } from "./ModifierAdminView";
@@ -12,14 +12,14 @@ type SubView =
   | "profil" | "pembayaran" | "notifikasi"
   | "kategori" | "addons" | "diskon" | "qr";
 
-const CARDS: { id: SubView; icon: string; title: string; desc: string }[] = [
-  { id: "profil",     icon: "🏪", title: "Profil Toko",       desc: "Nama, cabang, alamat, jam operasional" },
-  { id: "pembayaran", icon: "💳", title: "Pembayaran & Biaya", desc: "Metode, biaya layanan, QRIS merchant" },
-  { id: "notifikasi", icon: "🔔", title: "Notifikasi",         desc: "Pesanan baru, stok menipis" },
-  { id: "kategori",   icon: "🗂", title: "Kategori Menu",      desc: "Tambah, ubah, hapus kategori" },
-  { id: "addons",     icon: "✨", title: "Add-on & Varian",    desc: "Grup modifier, opsi, harga tambahan" },
-  { id: "diskon",     icon: "🏷", title: "Diskon & Voucher",   desc: "Kode voucher, diskon otomatis" },
-  { id: "qr",         icon: "📱", title: "QR Meja",            desc: "Generate & unduh QR per meja" },
+const CARDS: { id: SubView; icon: JSX.Element; title: string; desc: string }[] = [
+  { id: "profil",     icon: <Icons.store size={22} />,    title: "Profil Toko",       desc: "Nama, cabang, alamat, jam operasional" },
+  { id: "pembayaran", icon: <Icons.wallet size={22} />,   title: "Pembayaran & Biaya", desc: "Metode, biaya layanan, QRIS merchant" },
+  { id: "notifikasi", icon: <Icons.bell size={22} />,     title: "Notifikasi",         desc: "Pesanan baru, stok menipis" },
+  { id: "kategori",   icon: <Icons.category size={22} />, title: "Kategori Menu",      desc: "Tambah, ubah, hapus kategori" },
+  { id: "addons",     icon: <Icons.addon size={22} />,    title: "Add-on & Varian",    desc: "Grup modifier, opsi, harga tambahan" },
+  { id: "diskon",     icon: <Icons.tag size={22} />,      title: "Diskon & Voucher",   desc: "Kode voucher, diskon otomatis" },
+  { id: "qr",         icon: <Icons.qr size={22} />,       title: "QR Meja",            desc: "Generate & unduh QR per meja" },
 ];
 
 function Field({ label, children }: { label: string; children: ReactNode }): JSX.Element {
@@ -229,7 +229,7 @@ export function SettingsView(): JSX.Element {
               onMouseLeave={(e) => (e.currentTarget.style.background = "#fff")}
             >
               <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                <span style={{ fontSize: 22 }}>{c.icon}</span>
+                <span style={{ color: "var(--green-700)", display: "flex" }}>{c.icon}</span>
                 <div>
                   <div style={{ fontWeight: 700, fontSize: 14.5 }}>{c.title}</div>
                   <div style={{ fontSize: 12, color: "#8b7f6c", marginTop: 2 }}>{c.desc}</div>

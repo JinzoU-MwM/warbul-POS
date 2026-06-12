@@ -1,8 +1,9 @@
 // Typed client for the Warbul JSON API. Safe to call from client components.
 // Centralizes the request/response contract so every surface stays consistent.
 import type {
-  Product, Order, OrderMethod, Member, PromoResult, StoreSettings, Selection,
+  Product, Order, OrderMethod, Member, StoreSettings, Selection,
   ModGroupFull, ModType, Category, Ingredient, RecipeItem, RecipeRow,
+  Promotion, AppliedDiscount,
 } from "./types";
 import type { AnalyticsSummary, SalesReport, SummaryRange, ReportRange } from "./analytics";
 
@@ -69,9 +70,10 @@ export async function patchOrder(id: string, patch: Partial<Order>): Promise<Ord
 }
 
 /* ── promo / members ── */
-export async function validatePromo(code: string, subtotal: number): Promise<PromoResult> {
-  return j<PromoResult>(await fetch("/api/promo", {
-    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code, subtotal }),
+interface PromoValidateResult { ok: boolean; amount: number; name: string; message: string; code?: string; }
+export async function validatePromo(code: string, subtotal: number, qty = 0, categories: string[] = []): Promise<PromoValidateResult> {
+  return j<PromoValidateResult>(await fetch("/api/promo", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code, subtotal, qty, categories }),
   }));
 }
 export async function getMember(phone: string): Promise<Member | null> {
@@ -181,4 +183,29 @@ export async function getSalesReport(range: ReportRange = "week"): Promise<Sales
 }
 export function reportCsvUrl(range: ReportRange = "week"): string {
   return `/api/analytics/report?range=${range}&format=csv`;
+}
+
+/* ── promotions ── */
+export async function getPromotions(): Promise<Promotion[]> {
+  return (await j<{ promotions: Promotion[] }>(await fetch("/api/promotions", { cache: "no-store" }))).promotions;
+}
+export async function createPromotion(body: Omit<Promotion, "id" | "usedCount">): Promise<Promotion> {
+  return (await j<{ promotion: Promotion }>(await fetch("/api/promotions", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+  }))).promotion;
+}
+export async function updatePromotion(id: string, patch: Partial<Omit<Promotion, "id" | "usedCount">>): Promise<Promotion> {
+  return (await j<{ promotion: Promotion }>(await fetch(`/api/promotions/${id}`, {
+    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch),
+  }))).promotion;
+}
+export async function deletePromotion(id: string): Promise<void> {
+  await j<{ ok: boolean }>(await fetch(`/api/promotions/${id}`, { method: "DELETE" }));
+}
+export async function getAutoDiscounts(subtotal: number, qty: number, categories: string[]): Promise<AppliedDiscount[]> {
+  const cats = categories.join(",");
+  return (await j<{ applied: AppliedDiscount[] }>(await fetch(
+    `/api/promotions/auto?subtotal=${subtotal}&qty=${qty}&categories=${encodeURIComponent(cats)}`,
+    { cache: "no-store" },
+  ))).applied;
 }

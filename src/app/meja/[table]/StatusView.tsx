@@ -273,9 +273,11 @@ export default function StatusView({ orderId, table, onMenu }: StatusViewProps):
             ))}
             <div style={{ height: 1, background: "var(--line)", margin: "11px 0" }} />
             <Row k="Subtotal" v={rupiah(order.subtotal != null ? order.subtotal : order.total)} />
-            {order.discount > 0 && (
-              <Row k={"Diskon" + (order.promo ? " (" + order.promo.code + ")" : "")} v={"−" + rupiah(order.discount)} accent="var(--green-ok)" />
-            )}
+            {order.promo?.length ? order.promo.map((d) => (
+              <Row key={d.id} k={`Diskon (${d.name})`} v={"−" + rupiah(d.amount)} accent="var(--green-ok)" />
+            )) : order.discount > 0 ? (
+              <Row k="Diskon" v={"−" + rupiah(order.discount)} accent="var(--green-ok)" />
+            ) : null}
             <Row k="Biaya layanan" v={rupiah(order.service != null ? order.service : SERVICE_FEE)} />
             <Row k="Metode" v={order.method === "qris" ? "QRIS" : "Bayar di Kasir"} />
             <div style={{ height: 1, background: "var(--line)", margin: "11px 0" }} />

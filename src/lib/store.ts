@@ -4,9 +4,8 @@
 import "server-only";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories } from "@/db/schema";
+import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories, promotions, redemptions } from "@/db/schema";
 import { computeTotals } from "./pricing";
-import { applyPromo } from "./promos";
 import { unitPrice, modSummary, modGroupsFor, DEFAULT_MODIFIER_GROUPS } from "./modifiers";
 import { ORDER_STATUS } from "./constants";
 import { emitChange } from "./events";
@@ -15,7 +14,7 @@ import { UNLIMITED_STOCK } from "./types";
 import type {
   Order, OrderItem, OrderMethod, OrderStatus, Product, Member,
   Selection, StoreSettings, ModGroupFull, ModType, ModOption, Category,
-  Ingredient, RecipeItem, RecipeRow,
+  Ingredient, RecipeItem, RecipeRow, Promotion, PromotionTrigger, AppliedDiscount,
 } from "./types";
 
 export type RecipeOwner = "product" | "option";
@@ -413,16 +412,22 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
     }
   }
 
-  // Promo + totals computed from server-resolved prices (never trust client).
-  let promoAmount = 0;
-  let promo: Order["promo"] = null;
-  if (input.promoCode) {
-    const subtotalForPromo = resolved.reduce((s, i) => s + i.price * i.qty, 0);
-    const r = applyPromo(input.promoCode, subtotalForPromo);
-    if (r.ok) { promoAmount = r.amount; promo = { code: r.code!, amount: r.amount }; }
-  }
-  const settings = await getSettings();
-  const totals = computeTotals(resolved, promoAmount, settings.serviceFee);
+  // Discounts + totals computed from server-resolved prices (never trust client).
+  const subtotalForDiscount = resolved.reduce((s, i) => s + i.price * i.qty, 0);
+  const categories_ = (await Promise.all(resolved.map(async (it) => {
+    const p = await getProduct(it.id);
+    return p?.cat ?? "";
+  }))).filter(Boolean);
+  const totalQty = resolved.reduce((s, i) => s + i.qty, 0);
+  const discountResult = await applyDiscounts({
+    subtotal: subtotalForDiscount,
+    qty: totalQty,
+    categories: [...new Set(categories_)],
+    voucherCode: input.promoCode ?? undefined,
+  });
+  const promo: Order["promo"] = discountResult.applied.length ? discountResult.applied : null;
+  const storeSettings = await getSettings();
+  const totals = computeTotals(resolved, discountResult.totalDiscount, storeSettings.serviceFee);
 
   const id = await nextOrderId();
   const createdAt = Date.now();
@@ -454,6 +459,7 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
     emitChange("menu");
   }
   if (input.phone) await recordLoyalty(input.phone, totals.total);
+  await recordRedemptions(discountResult.applied, id);
 
   emitChange("orders");
   return (await getOrder(id))!;
@@ -510,3 +516,180 @@ export async function saveSettings(patch: Partial<StoreSettings>): Promise<Store
 
 // re-export for route handlers
 export { and, eq };
+
+/* ─────────────────────────── promotions ─────────────────────────── */
+
+function rowToPromotion(r: typeof promotions.$inferSelect): Promotion {
+  return {
+    id: r.id,
+    kind: r.kind as Promotion["kind"],
+    name: r.name,
+    valueType: r.valueType as Promotion["valueType"],
+    value: r.value,
+    maxValue: r.maxValue ?? null,
+    minSpend: r.minSpend,
+    scope: r.scope,
+    stackable: Boolean(r.stackable),
+    enabled: Boolean(r.enabled),
+    code: r.code ?? null,
+    maxUses: r.maxUses ?? null,
+    usedCount: r.usedCount,
+    expiresAt: r.expiresAt ?? null,
+    trigger: r.trigger ? (JSON.parse(r.trigger) as PromotionTrigger) : null,
+  };
+}
+
+export async function getPromotions(): Promise<Promotion[]> {
+  const rows = await db.select().from(promotions);
+  return rows.map(rowToPromotion);
+}
+
+export async function createPromotion(input: Omit<Promotion, "id" | "usedCount">): Promise<Promotion> {
+  const id = "promo_" + Date.now().toString(36);
+  await db.insert(promotions).values({
+    id,
+    kind: input.kind,
+    name: input.name,
+    valueType: input.valueType,
+    value: input.value,
+    maxValue: input.maxValue ?? null,
+    minSpend: input.minSpend,
+    scope: input.scope,
+    stackable: input.stackable ? 1 : 0,
+    enabled: input.enabled ? 1 : 0,
+    code: input.code ?? null,
+    maxUses: input.maxUses ?? null,
+    usedCount: 0,
+    expiresAt: input.expiresAt ?? null,
+    trigger: input.trigger ? JSON.stringify(input.trigger) : null,
+  });
+  const [row] = await db.select().from(promotions).where(eq(promotions.id, id));
+  return rowToPromotion(row);
+}
+
+export async function updatePromotion(id: string, patch: Partial<Omit<Promotion, "id" | "usedCount">>): Promise<Promotion> {
+  const update: Record<string, unknown> = {};
+  if (patch.name !== undefined) update.name = patch.name;
+  if (patch.valueType !== undefined) update.valueType = patch.valueType;
+  if (patch.value !== undefined) update.value = patch.value;
+  if (patch.maxValue !== undefined) update.maxValue = patch.maxValue;
+  if (patch.minSpend !== undefined) update.minSpend = patch.minSpend;
+  if (patch.scope !== undefined) update.scope = patch.scope;
+  if (patch.stackable !== undefined) update.stackable = patch.stackable ? 1 : 0;
+  if (patch.enabled !== undefined) update.enabled = patch.enabled ? 1 : 0;
+  if (patch.code !== undefined) update.code = patch.code;
+  if (patch.maxUses !== undefined) update.maxUses = patch.maxUses;
+  if (patch.expiresAt !== undefined) update.expiresAt = patch.expiresAt;
+  if (patch.trigger !== undefined) update.trigger = patch.trigger ? JSON.stringify(patch.trigger) : null;
+  if (Object.keys(update).length) await db.update(promotions).set(update).where(eq(promotions.id, id));
+  const [row] = await db.select().from(promotions).where(eq(promotions.id, id));
+  return rowToPromotion(row);
+}
+
+export async function deletePromotion(id: string): Promise<void> {
+  await db.delete(redemptions).where(eq(redemptions.promotionId, id));
+  await db.delete(promotions).where(eq(promotions.id, id));
+}
+
+function calcAmount(promo: Promotion, subtotal: number): number {
+  if (promo.valueType === "flat") return Math.min(promo.value, subtotal);
+  const pct = Math.floor((subtotal * promo.value) / 100);
+  return promo.maxValue != null ? Math.min(pct, promo.maxValue) : pct;
+}
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+export async function applyDiscounts(params: {
+  subtotal: number;
+  qty: number;
+  categories: string[];
+  voucherCode?: string;
+}): Promise<{ applied: AppliedDiscount[]; totalDiscount: number }> {
+  const { subtotal, qty, categories, voucherCode } = params;
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  const all = await getPromotions();
+  const candidates: Array<Promotion & { _amount: number }> = [];
+
+  // Auto-discounts
+  for (const p of all) {
+    if (p.kind !== "auto" || !p.enabled) continue;
+    if (p.minSpend > subtotal) continue;
+    if (p.scope !== "all" && !categories.includes(p.scope)) continue;
+    const t = p.trigger;
+    if (t) {
+      if (t.type === "time") {
+        const from = timeToMinutes(t.from ?? "00:00");
+        const to = timeToMinutes(t.to ?? "23:59");
+        if (nowMinutes < from || nowMinutes > to) continue;
+      } else if (t.type === "minSpend") {
+        if (subtotal < (t.amount ?? 0)) continue;
+      } else if (t.type === "qty") {
+        if (qty < (t.count ?? 1)) continue;
+      }
+    }
+    candidates.push({ ...p, _amount: calcAmount(p, subtotal) });
+  }
+
+  // Voucher
+  if (voucherCode) {
+    const code = voucherCode.trim().toUpperCase();
+    const voucher = all.find((p) => p.kind === "voucher" && p.code === code);
+    if (!voucher) throw new Error("Kode voucher tidak ditemukan");
+    if (!voucher.enabled) throw new Error("Voucher tidak aktif");
+    if (voucher.expiresAt && voucher.expiresAt < Date.now()) throw new Error("Voucher sudah kadaluarsa");
+    if (voucher.maxUses != null && voucher.usedCount >= voucher.maxUses) throw new Error("Voucher sudah habis digunakan");
+    if (voucher.minSpend > subtotal) throw new Error(`Min. belanja ${voucher.minSpend} untuk voucher ini`);
+    if (voucher.scope !== "all" && !categories.includes(voucher.scope)) throw new Error("Voucher tidak berlaku untuk item yang dipesan");
+    candidates.push({ ...voucher, _amount: calcAmount(voucher, subtotal) });
+  }
+
+  // Stacking resolution
+  const stackable = candidates.filter((c) => c.stackable);
+  const nonStackable = candidates.filter((c) => !c.stackable);
+  const bestNonStack = nonStackable.sort((a, b) => b._amount - a._amount)[0];
+
+  const toApply = [...stackable, ...(bestNonStack ? [bestNonStack] : [])];
+  let remaining = subtotal;
+  const applied: AppliedDiscount[] = [];
+  for (const p of toApply) {
+    const amt = Math.min(p._amount, remaining);
+    if (amt <= 0) continue;
+    applied.push({ id: p.id, name: p.name, ...(p.code ? { code: p.code } : {}), amount: amt });
+    remaining -= amt;
+  }
+
+  return { applied, totalDiscount: applied.reduce((s, a) => s + a.amount, 0) };
+}
+
+export async function getAutoDiscounts(params: {
+  subtotal: number;
+  qty: number;
+  categories: string[];
+}): Promise<AppliedDiscount[]> {
+  const result = await applyDiscounts(params);
+  return result.applied;
+}
+
+async function recordRedemptions(applied: AppliedDiscount[], orderId: string): Promise<void> {
+  if (!applied.length) return;
+  const now = Date.now();
+  for (const a of applied) {
+    await db.insert(redemptions).values({
+      id: `rdm_${now}_${a.id}`,
+      promotionId: a.id,
+      orderId,
+      amount: a.amount,
+      redeemedAt: now,
+    });
+    // Increment usedCount for vouchers only
+    const [promo] = await db.select().from(promotions).where(eq(promotions.id, a.id));
+    if (promo?.kind === "voucher") {
+      await db.update(promotions).set({ usedCount: promo.usedCount + 1 }).where(eq(promotions.id, a.id));
+    }
+  }
+}

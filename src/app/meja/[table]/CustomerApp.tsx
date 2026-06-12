@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import type { OrderMethod, Product, Selection } from "@/lib/types";
-import { createOrder, getMenu, getConfig } from "@/lib/api";
+import { createOrder, getMenu, getConfig, getAutoDiscounts } from "@/lib/api";
+import type { AppliedDiscount } from "@/lib/types";
 import { useLive } from "@/lib/use-live";
 import { computeTotals } from "@/lib/pricing";
 import { SERVICE_FEE } from "@/lib/constants";
@@ -32,6 +33,7 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
   const [detail, setDetail] = useState<Product | null>(null);
   const [method, setMethod] = useState<OrderMethod>("qris");
   const [promo, setPromo] = useState<PromoValue | null>(null);
+  const [autoDiscounts, setAutoDiscounts] = useState<AppliedDiscount[]>([]);
   const [placing, setPlacing] = useState(false);
   const [menuLoading, setMenuLoading] = useState(true);
   const [menuError, setMenuError] = useState(false);
@@ -108,9 +110,20 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
 
   const cartCount = lines.reduce((a, l) => a + l.qty, 0);
   const subtotal = lines.reduce((s, l) => s + l.unit * l.qty, 0);
+  const totalQty = lines.reduce((a, l) => a + l.qty, 0);
+  const cartCats = [...new Set(lines.map((l) => l.product.cat))];
+
+  // Fetch auto-discounts whenever the cart changes (only when on checkout view).
+  useEffect(() => {
+    if (view !== "checkout" || subtotal === 0) { setAutoDiscounts([]); return; }
+    getAutoDiscounts(subtotal, totalQty, cartCats).then(setAutoDiscounts).catch(() => setAutoDiscounts([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subtotal, totalQty, view]);
+
+  const autoDiscountTotal = autoDiscounts.reduce((s, a) => s + a.amount, 0);
   const totals = computeTotals(
     lines.map((l) => ({ price: l.unit, qty: l.qty })),
-    promo?.amount ?? 0,
+    (promo?.amount ?? 0) + autoDiscountTotal,
     serviceFee,
   );
 
@@ -222,6 +235,7 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
             setMethod={setMethod}
             promo={promo}
             setPromo={setPromo}
+            autoDiscounts={autoDiscounts}
             phone={phone}
             setPhone={setPhone}
             onBack={() => setView("cart")}

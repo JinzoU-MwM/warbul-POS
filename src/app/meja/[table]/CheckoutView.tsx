@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
-import type { Member, OrderMethod, Totals } from "@/lib/types";
+import type { AppliedDiscount, Member, OrderMethod, Totals } from "@/lib/types";
 import { PromoBox, Icons, type PromoValue } from "@/components";
 import { getMember } from "@/lib/api";
 import { rupiah } from "@/lib/constants";
@@ -16,6 +16,7 @@ interface CheckoutViewProps {
   setMethod: (m: OrderMethod) => void;
   promo: PromoValue | null;
   setPromo: (p: PromoValue | null) => void;
+  autoDiscounts: AppliedDiscount[];
   phone: string;
   setPhone: (p: string) => void;
   onBack: () => void;
@@ -37,6 +38,7 @@ export default function CheckoutView({
   setMethod,
   promo,
   setPromo,
+  autoDiscounts,
   phone,
   setPhone,
   onBack,
@@ -133,6 +135,21 @@ export default function CheckoutView({
           <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".06em", color: "#8b7f6c", marginBottom: 11 }}>
             PROMO & POIN
           </div>
+          {autoDiscounts.map((a) => (
+            <div key={a.id} style={{
+              background: "#f0f9f2", border: "1px solid #bbf7d0", borderRadius: 13,
+              padding: "10px 14px", marginBottom: 8,
+              display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10,
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 18 }}>🎉</span>
+                <div>
+                  <div style={{ fontWeight: 700, color: "#15803d", fontSize: 13 }}>{a.name} · otomatis</div>
+                </div>
+              </div>
+              <span style={{ fontWeight: 800, color: "#15803d", fontSize: 13 }}>−{rupiah(a.amount)}</span>
+            </div>
+          ))}
           <PromoBox subtotal={subtotal} value={promo} onChange={setPromo} />
           <div
             style={{
@@ -191,8 +208,11 @@ export default function CheckoutView({
             ))}
             <div style={{ height: 1, background: "var(--line)", margin: "11px 0" }} />
             <Row k="Subtotal" v={rupiah(totals.subtotal)} />
-            {totals.discount > 0 && (
-              <Row k={"Diskon" + (promo ? " (" + promo.code + ")" : "")} v={"−" + rupiah(totals.discount)} accent="var(--green-ok)" />
+            {autoDiscounts.map((a) => (
+              <Row key={a.id} k={`Diskon (${a.name})`} v={"−" + rupiah(a.amount)} accent="var(--green-ok)" />
+            ))}
+            {promo && promo.amount > 0 && (
+              <Row k={`Diskon (${promo.code})`} v={"−" + rupiah(promo.amount)} accent="var(--green-ok)" />
             )}
             <Row k="Biaya layanan" v={rupiah(totals.service)} />
             <div style={{ height: 1, background: "var(--line)", margin: "11px 0" }} />

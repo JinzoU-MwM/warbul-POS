@@ -102,7 +102,7 @@ export const orders = sqliteTable("orders", {
   service: integer("service").notNull().default(0),
   discount: integer("discount").notNull().default(0),
   total: integer("total").notNull().default(0),
-  promo: text("promo", { mode: "json" }).$type<{ code: string; amount: number } | null>(),
+  promo: text("promo", { mode: "json" }).$type<{ id: string; name: string; code?: string; amount: number }[]>(),
   phone: text("phone"),
   createdAt: integer("created_at").notNull(), // epoch ms
   // Pakasir QRIS charge data (set when a customer pays via QRIS gateway)
@@ -142,6 +142,34 @@ export const categories = sqliteTable("categories", {
   id: text("id").primaryKey(),
   name: text("name").notNull().unique(),
   position: integer("position").notNull(),
+});
+
+export const promotions = sqliteTable("promotions", {
+  id:        text("id").primaryKey(),
+  kind:      text("kind").notNull(),          // "voucher" | "auto"
+  name:      text("name").notNull(),
+  valueType: text("value_type").notNull(),    // "flat" | "pct"
+  value:     integer("value").notNull(),      // flat: rupiah; pct: 0–100
+  maxValue:  integer("max_value"),            // pct only: discount cap in rupiah
+  minSpend:  integer("min_spend").notNull().default(0),
+  scope:     text("scope").notNull().default("all"), // "all" | category name
+  stackable: integer("stackable").notNull().default(0),
+  enabled:   integer("enabled").notNull().default(1),
+  // voucher-only (null for auto)
+  code:      text("code").unique(),
+  maxUses:   integer("max_uses"),             // null = unlimited
+  usedCount: integer("used_count").notNull().default(0),
+  expiresAt: integer("expires_at"),           // epoch ms
+  // auto-only (null for voucher)
+  trigger:   text("trigger"),                 // JSON: {type,from?,to?,amount?,count?}
+});
+
+export const redemptions = sqliteTable("redemptions", {
+  id:          text("id").primaryKey(),
+  promotionId: text("promotion_id").notNull(),
+  orderId:     text("order_id").notNull(),
+  amount:      integer("amount").notNull(),
+  redeemedAt:  integer("redeemed_at").notNull(),
 });
 
 // Modifier / add-on groups (e.g. Ukuran, Tambahan) assigned to product categories.

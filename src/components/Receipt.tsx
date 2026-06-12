@@ -98,9 +98,11 @@ export function Receipt({ order, settings, cashierName }: ReceiptProps): JSX.Ele
       <hr style={dash} />
 
       <RcptRow k="Subtotal" v={rupiah(order.subtotal != null ? order.subtotal : order.total)} />
-      {order.discount > 0 && (
-        <RcptRow k={"Diskon" + (order.promo ? " " + order.promo.code : "")} v={"−" + rupiah(order.discount)} />
-      )}
+      {order.promo?.length ? order.promo.map((d) => (
+        <RcptRow key={d.id} k={`Diskon (${d.name})`} v={"−" + rupiah(d.amount)} />
+      )) : order.discount > 0 ? (
+        <RcptRow k="Diskon" v={"−" + rupiah(order.discount)} />
+      ) : null}
       <RcptRow k="Biaya layanan" v={rupiah(order.service)} />
       <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontWeight: 800, fontSize: 14 }}>
         <span>TOTAL</span>

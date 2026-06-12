@@ -64,21 +64,43 @@ export interface ModGroupFull extends ModGroup {
 /** A modifier selection: single groups map to an option id, multi groups to an array of ids. */
 export type Selection = Record<string, string | string[]>;
 
-export interface Promo {
-  code: string;
-  type: "flat" | "pct";
-  value: number;
-  min?: number;
-  max?: number;
-  desc: string;
+export interface AppliedDiscount {
+  id: string;
+  name: string;
+  code?: string;
+  amount: number;
 }
 
-export interface PromoResult {
-  ok: boolean;
-  amount: number;
-  message: string;
-  code?: string;
-  promo?: Promo;
+export type PromotionKind = "voucher" | "auto";
+export type PromotionValueType = "flat" | "pct";
+export type TriggerType = "time" | "minSpend" | "qty";
+
+export interface PromotionTrigger {
+  type: TriggerType;
+  from?: string;   // "HH:MM" for time trigger
+  to?: string;     // "HH:MM" for time trigger
+  amount?: number; // rupiah for minSpend trigger
+  count?: number;  // items for qty trigger
+}
+
+export interface Promotion {
+  id: string;
+  kind: PromotionKind;
+  name: string;
+  valueType: PromotionValueType;
+  value: number;
+  maxValue?: number | null;
+  minSpend: number;
+  scope: string;   // "all" | category name
+  stackable: boolean;
+  enabled: boolean;
+  // voucher-only
+  code?: string | null;
+  maxUses?: number | null;
+  usedCount: number;
+  expiresAt?: number | null;
+  // auto-only
+  trigger?: PromotionTrigger | null;
 }
 
 export interface Totals {
@@ -128,7 +150,7 @@ export interface Order {
   service: number;
   discount: number;
   total: number;
-  promo?: { code: string; amount: number } | null;
+  promo?: AppliedDiscount[] | null;
   phone?: string | null;
   createdAt: number; // epoch ms
   pakasir?: PakasirInfo | null;

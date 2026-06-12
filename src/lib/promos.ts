@@ -1,6 +1,9 @@
-// Promo codes + application logic. Ported from design-reference/warbul.js.
-import type { Promo, PromoResult } from "./types";
+// Legacy promo helpers — superseded by the DB-backed promotions system.
+// Kept for reference only; no longer imported by any active code path.
 import { rupiah } from "./constants";
+
+interface Promo { code: string; type: "flat" | "pct"; value: number; min?: number; max?: number; desc: string; }
+interface PromoResult { ok: boolean; amount: number; message: string; code?: string; promo?: Promo; }
 
 export const PROMOS: Promo[] = [
   { code: "NGOPI5", type: "flat", value: 5000, min: 20000, desc: "Potongan Rp5.000" },

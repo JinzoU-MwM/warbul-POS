@@ -167,9 +167,11 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
       {/* totals */}
       <div className="od-card" style={{ marginTop: 14, padding: "15px 18px" }}>
         <Line k="Subtotal" v={rupiah(order.subtotal != null ? order.subtotal : order.total)} />
-        {order.discount > 0 && (
-          <Line k={"Diskon" + (order.promo ? " (" + order.promo.code + ")" : "")} v={"−" + rupiah(order.discount)} />
-        )}
+        {order.promo?.length ? order.promo.map((d) => (
+          <Line key={d.id} k={`Diskon (${d.name})`} v={"−" + rupiah(d.amount)} />
+        )) : order.discount > 0 ? (
+          <Line k="Diskon" v={"−" + rupiah(order.discount)} />
+        ) : null}
         <Line k="Biaya layanan" v={rupiah(order.service)} />
         <Line k={"Metode · " + methodLabel} v={order.payDetail ? order.payDetail : order.paid ? "Lunas" : "Belum bayar"} />
         <div style={{ height: 1, background: "var(--line)", margin: "11px 0" }} />

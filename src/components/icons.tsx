@@ -154,4 +154,38 @@ export const Icons: Record<string, Icon> = {
       <path d="M6 6l12 12M18 6L6 18" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   ),
+  tag: ({ size = 20, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12.5 3H7a2 2 0 0 0-2 2v5.5l9.5 9.5a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8L12.5 3Z" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      <circle cx="9" cy="9" r="1.3" fill={color} />
+    </svg>
+  ),
+  store: ({ size = 20, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M3 9l1-5h16l1 5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path d="M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 19v-4h4v4" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  category: ({ size = 20, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="3" width="7" height="5" rx="1.5" stroke={color} strokeWidth="2" />
+      <rect x="14" y="3" width="7" height="5" rx="1.5" stroke={color} strokeWidth="2" />
+      <rect x="3" y="12" width="7" height="9" rx="1.5" stroke={color} strokeWidth="2" />
+      <rect x="14" y="12" width="7" height="9" rx="1.5" stroke={color} strokeWidth="2" />
+    </svg>
+  ),
+  addon: ({ size = 20, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 3v4M12 17v4M3 12h4M17 12h4M5.6 5.6l2.8 2.8M15.6 15.6l2.8 2.8M18.4 5.6l-2.8 2.8M8.4 15.6l-2.8 2.8" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
+  gift: ({ size = 20, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M20 12v9H4v-9" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M22 7H2v5h20V7Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12 22V7M12 7H8a2 2 0 0 1 0-4c2 0 4 4 4 4ZM12 7h4a2 2 0 0 0 0-4c-2 0-4 4-4 4Z" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
 };

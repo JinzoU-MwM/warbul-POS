@@ -1,6 +1,6 @@
 "use client";
 // Order detail + payment confirmation panel for the cashier Orders dashboard.
-import { useState, type JSX } from "react";
+import { useEffect, useRef, useState, type JSX } from "react";
 import type { Order } from "@/lib/types";
 import { ORDER_STATUS, rupiah } from "@/lib/constants";
 import { Icons, StatusPill, ReceiptModal } from "@/components";
@@ -59,15 +59,18 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
   const [payOpen, setPayOpen] = useState(false);
   const [receipt, setReceipt] = useState(false);
   const [cancelBusy, setCancelBusy] = useState(false);
+  const mountedRef = useRef(true);
 
-  const canCancel = order.status === ORDER_STATUS.WAIT_PAY;
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
+  const canCancel = order.status === ORDER_STATUS.WAIT_PAY && !order.paid;
 
   async function handleCancel() {
     setCancelBusy(true);
     try {
       await onPatch(order.id, { status: ORDER_STATUS.CANCELLED });
     } finally {
-      setCancelBusy(false);
+      if (mountedRef.current) setCancelBusy(false);
     }
   }
 

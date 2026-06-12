@@ -37,7 +37,9 @@ function LoginForm() {
     // override the owner's correct destination.
     const role = (data?.user as { role?: string } | undefined)?.role;
     const isOwner = role === "owner";
-    const validNext = next && (isOwner ? next.startsWith("/owner") : !next.startsWith("/owner"));
+    // Reject absolute/protocol-relative URLs to prevent open redirect.
+    const isSafeRelative = next && next.startsWith("/") && !next.startsWith("//");
+    const validNext = isSafeRelative && (isOwner ? next.startsWith("/owner") : !next.startsWith("/owner"));
     const dest = validNext ? next : (isOwner ? "/owner" : "/pos");
     router.push(dest);
     router.refresh();

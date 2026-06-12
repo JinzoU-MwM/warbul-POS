@@ -45,7 +45,8 @@ export function OverviewView({ userName }: { userName: string }) {
   const [range, setRange] = useState<SummaryRange>("today");
   const [data, setData] = useState<AnalyticsSummary | null>(null);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [lastSeen, setLastSeen] = useState(0);
+  const [lastSeen, setLastSeen] = useState<number | null>(null);
+  const [seenLowStockIds, setSeenLowStockIds] = useState<ReadonlySet<string>>(new Set());
   const [notifyNewOrder, setNotifyNewOrder] = useState(true);
   const [notifyOutOfStock, setNotifyOutOfStock] = useState(true);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -77,22 +78,25 @@ export function OverviewView({ userName }: { userName: string }) {
     return () => document.removeEventListener("mousedown", onMouseDown);
   }, [notifOpen]);
 
+  function markAllRead(currentLowStock: AnalyticsSummary["lowStock"]) {
+    const now = Date.now();
+    setLastSeen(now);
+    setSeenLowStockIds(new Set(currentLowStock.map((i) => i.id)));
+    localStorage.setItem(NOTIF_LS_KEY, String(now));
+  }
+
   function openNotif() {
-    setNotifOpen((o) => {
-      if (!o) {
-        const now = Date.now();
-        setLastSeen(now);
-        localStorage.setItem(NOTIF_LS_KEY, String(now));
-      }
-      return !o;
-    });
+    if (!notifOpen) markAllRead(lowStock);
+    setNotifOpen((o) => !o);
   }
 
   const recentOrders: Order[] = data?.recent ?? [];
   const lowStock = data?.lowStock ?? [];
   const hasUnread =
-    (notifyNewOrder && recentOrders.some((o) => o.createdAt > lastSeen)) ||
-    (notifyOutOfStock && lowStock.length > 0);
+    lastSeen !== null && (
+      (notifyNewOrder && recentOrders.some((o) => o.createdAt > lastSeen)) ||
+      (notifyOutOfStock && lowStock.some((i) => !seenLowStockIds.has(i.id)))
+    );
 
   const firstName = userName.split(/\s+/)[0];
   const today = new Date().toLocaleDateString("id-ID", {
@@ -144,11 +148,7 @@ export function OverviewView({ userName }: { userName: string }) {
                 orders={notifyNewOrder ? recentOrders : []}
                 lowStock={notifyOutOfStock ? lowStock : []}
                 lastSeen={lastSeen}
-                onMarkAll={() => {
-                  const now = Date.now();
-                  setLastSeen(now);
-                  localStorage.setItem(NOTIF_LS_KEY, String(now));
-                }}
+                onMarkAll={() => markAllRead(lowStock)}
               />
             )}
           </div>
@@ -225,7 +225,7 @@ export function OverviewView({ userName }: { userName: string }) {
 
 function timeAgo(t: number): string {
   const d = Math.floor((Date.now() - t) / 1000);
-  if (d < 60) return d + "d lalu";
+  if (d < 60) return d + "dtk lalu";
   const m = Math.floor(d / 60);
   if (m < 60) return m + "m lalu";
   return Math.floor(m / 60) + "j lalu";
@@ -234,7 +234,7 @@ function timeAgo(t: number): string {
 interface NotifPanelProps {
   orders: Order[];
   lowStock: AnalyticsSummary["lowStock"];
-  lastSeen: number;
+  lastSeen: number | null;
   onMarkAll: () => void;
 }
 
@@ -267,7 +267,7 @@ function NotifPanel({ orders, lowStock, lastSeen, onMarkAll }: NotifPanelProps):
             <div>
               <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "#9CA3AF", letterSpacing: ".08em" }}>PESANAN BARU</div>
               {orders.map((o) => {
-                const unread = o.createdAt > lastSeen;
+                const unread = lastSeen !== null && o.createdAt > lastSeen;
                 return (
                   <div key={o.id} style={{
                     padding: "9px 16px", display: "flex", gap: 10, alignItems: "flex-start",

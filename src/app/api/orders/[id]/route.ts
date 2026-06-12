@@ -25,15 +25,28 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
     const existing = await getOrder(id);
     if (!existing) return NextResponse.json({ order: null }, { status: 404 });
 
-    const patch = (await req.json()) as Partial<Order>;
+    const rawBody = (await req.json()) as Partial<Order> & { table?: number };
 
-    // Unauthenticated customers may only cancel their own unpaid orders.
-    const isCustomerCancel = !session?.user && patch.status === ORDER_STATUS.CANCELLED;
+    // Unauthenticated customers may only cancel their own UNPAID orders on their own table.
+    const isCustomerCancel = !session?.user && rawBody.status === ORDER_STATUS.CANCELLED;
     if (!session?.user && !isCustomerCancel) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (patch.status === ORDER_STATUS.CANCELLED && existing.status !== ORDER_STATUS.WAIT_PAY) {
+    let patch: Partial<Order>;
+    if (isCustomerCancel) {
+      // Ownership check: the client must echo the order's table number.
+      if (rawBody.table === undefined || rawBody.table !== existing.table) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      // Strip to only the safe status field — ignore every other field the client sent.
+      patch = { status: ORDER_STATUS.CANCELLED };
+    } else {
+      patch = rawBody;
+    }
+
+    // Block cancellation once paid (guards against webhook race where paid=true but status still WAIT_PAY).
+    if (patch.status === ORDER_STATUS.CANCELLED && (existing.status !== ORDER_STATUS.WAIT_PAY || existing.paid)) {
       return NextResponse.json({ error: "Pesanan sudah dibayar, tidak bisa dibatalkan" }, { status: 409 });
     }
 

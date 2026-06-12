@@ -261,9 +261,9 @@ export type OrderFilter = "all" | "active" | "Menunggu Pembayaran" | "Diproses" 
 export async function getOrders(filter: OrderFilter = "all"): Promise<Order[]> {
   let rows;
   if (filter === "active") {
-    rows = await db.select().from(orders).where(ne(orders.status, ORDER_STATUS.DONE)).orderBy(desc(orders.createdAt));
-  } else if (filter === "all") {
     rows = await db.select().from(orders).where(and(ne(orders.status, ORDER_STATUS.DONE), ne(orders.status, ORDER_STATUS.CANCELLED))).orderBy(desc(orders.createdAt));
+  } else if (filter === "all") {
+    rows = await db.select().from(orders).orderBy(desc(orders.createdAt));
   } else {
     rows = await db.select().from(orders).where(eq(orders.status, filter)).orderBy(desc(orders.createdAt));
   }

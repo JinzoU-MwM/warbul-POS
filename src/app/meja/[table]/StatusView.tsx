@@ -11,10 +11,11 @@ import { CartHeader, OptsLine, Row, pad2 } from "./shared";
 
 interface StatusViewProps {
   orderId: string;
+  table: number;
   onMenu: () => void;
 }
 
-export default function StatusView({ orderId, onMenu }: StatusViewProps): JSX.Element {
+export default function StatusView({ orderId, table, onMenu }: StatusViewProps): JSX.Element {
   const [order, setOrder] = useState<Order | null>(null);
   const [member, setMember] = useState<Member | null>(null);
   const [showQR, setShowQR] = useState(false);
@@ -311,7 +312,7 @@ export default function StatusView({ orderId, onMenu }: StatusViewProps): JSX.El
                       onClick={async () => {
                         setCancelBusy(true);
                         try {
-                          await patchOrder(orderId, { status: ORDER_STATUS.CANCELLED });
+                          await patchOrder(orderId, { status: ORDER_STATUS.CANCELLED, table });
                           onMenu();
                         } catch {
                           setCancelBusy(false);

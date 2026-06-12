@@ -229,7 +229,7 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
             placing={placing}
           />
         )}
-        {view === "status" && orderId && <StatusView orderId={orderId} onMenu={resetToMenu} />}
+        {view === "status" && orderId && <StatusView orderId={orderId} table={table} onMenu={resetToMenu} />}
         {view === "status" && !orderId && (
           <MenuView
             table={table}

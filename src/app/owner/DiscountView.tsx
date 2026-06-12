@@ -259,7 +259,7 @@ function PromotionModal({ kind, editing, availCats, onClose, onSaved }: ModalPro
   return (
     <div className="dv-bd" onClick={onClose}>
       <div className="dv-card" onClick={(e) => e.stopPropagation()}
-        style={{ width: 440, maxWidth: "92vw", maxHeight: "90vh", overflowY: "auto", padding: 22 }}>
+        style={{ width: 440, maxWidth: "92vw", maxHeight: "90vh", overflowY: "auto" }}>
         <div className="brand" style={{ fontSize: 20, fontWeight: 700, marginBottom: 18 }}>
           {editing ? "Edit" : "Tambah"} {kind === "voucher" ? "Kode Voucher" : "Diskon Otomatis"}
         </div>
@@ -332,9 +332,9 @@ function PromotionModal({ kind, editing, availCats, onClose, onSaved }: ModalPro
             </div>
             {triggerType === "time" && (
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 15 }}>
-                <input className="fld" type="time" value={triggerFrom} onChange={(e) => setTriggerFrom(e.target.value)} />
+                <input className="fld" style={{ flex: 1, minWidth: 0 }} type="time" value={triggerFrom} onChange={(e) => setTriggerFrom(e.target.value)} />
                 <span style={{ color: "#8b7f6c" }}>–</span>
-                <input className="fld" type="time" value={triggerTo} onChange={(e) => setTriggerTo(e.target.value)} />
+                <input className="fld" style={{ flex: 1, minWidth: 0 }} type="time" value={triggerTo} onChange={(e) => setTriggerTo(e.target.value)} />
               </div>
             )}
             {triggerType === "minSpend" && (
@@ -379,14 +379,20 @@ function PromotionModal({ kind, editing, availCats, onClose, onSaved }: ModalPro
 function DiscountStyles(): JSX.Element {
   return (
     <style>{`
-      .dv-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:80;padding:16px;animation:dv-fade .18s}
-      .dv-card{background:#fff;border-radius:18px;box-shadow:0 30px 60px -24px rgba(0,0,0,.5);animation:dv-pop .2s}
-      .dv-toggle{flex:1;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;padding:11px 8px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:#6f6353}
+      .dv-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:300;padding:16px;animation:dv-fade .18s}
+      .dv-card{background:#fff;border-radius:18px;padding:22px;box-shadow:0 30px 60px -24px rgba(0,0,0,.5);animation:dv-pop .2s}
+      .dv-toggle{flex:1;min-width:0;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;padding:11px 8px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:#6f6353}
       .dv-toggle.on{border-color:var(--green-700);background:var(--green-ok-bg);color:var(--green-ok)}
       .dv-chip{cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:#6f6353;display:inline-flex;align-items:center;gap:5px}
       .dv-chip.on{border-color:var(--green-800);background:var(--green-800);color:var(--cream)}
       @keyframes dv-fade{from{opacity:0}}
       @keyframes dv-pop{from{opacity:0;transform:translateY(8px) scale(.98)}}
+      @media(max-width:480px){
+        .dv-bd{padding:10px}
+        .dv-card{padding:18px}
+        .dv-toggle{font-size:12px;padding:10px 5px}
+        .dv-chip{font-size:12px;padding:7px 12px}
+      }
     `}</style>
   );
 }

@@ -233,7 +233,7 @@ function MenuAdminStyles(): JSX.Element {
     <style>{`
       .ma-fld{width:100%;border:1.5px solid var(--line);border-radius:12px;padding:12px 14px;font-size:14.5px;outline:none;background:#fff;font-family:inherit;color:var(--ink)}
       .ma-fld:focus{border-color:var(--green-700)}
-      .ma-modalbd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:80;animation:ma-fade .18s}
+      .ma-modalbd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:300;padding:14px;animation:ma-fade .18s}
       .ma-modalcard{background:var(--paper);border-radius:22px;animation:ma-mpop .2s}
       @keyframes ma-fade{from{opacity:0}}
       @keyframes ma-mpop{from{transform:scale(.95);opacity:0}}

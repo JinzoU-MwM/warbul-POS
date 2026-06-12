@@ -165,7 +165,7 @@ export function RecipeEditor({ ownerType, ownerId, title, onClose }: RecipeEdito
 function RecipeStyles(): JSX.Element {
   return (
     <style>{`
-      .rcp-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:90;animation:rcp-fade .18s}
+      .rcp-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:310;padding:14px;animation:rcp-fade .18s}
       .rcp-card{background:#fff;border-radius:18px;box-shadow:0 30px 60px -24px rgba(0,0,0,.5);animation:rcp-pop .2s}
       .rcp-row{display:flex;align-items:center;gap:8px}
       .rcp-sel{flex:1;min-width:0}

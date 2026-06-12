@@ -373,7 +373,7 @@ function IngStyles(): JSX.Element {
       .ing-iconbtn{width:32px;height:32px;border-radius:10px;border:1px solid var(--line);background:#fff;display:grid;place-items:center;cursor:pointer}
       .ing-iconbtn:hover{background:var(--paper-2)}
       .ing-iconbtn.ing-danger{border-color:var(--red-bg);background:var(--red-bg)}
-      .ing-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:80;animation:ing-fade .18s}
+      .ing-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:300;padding:14px;animation:ing-fade .18s}
       .ing-card{background:#fff;border-radius:18px;box-shadow:0 30px 60px -24px rgba(0,0,0,.5);animation:ing-pop .2s}
       @keyframes ing-fade{from{opacity:0}}
       @keyframes ing-pop{from{opacity:0;transform:translateY(8px) scale(.98)}}

@@ -522,7 +522,7 @@ function ModStyles(): JSX.Element {
       .ma-mod-defbadge{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:800;color:var(--gold-700);background:#FBF1DF;border:1px solid #ECCF9E;padding:2px 7px;border-radius:999px;white-space:nowrap}
       .ma-mod-addopt{margin-top:12px;border:1.5px dashed var(--cream-400);background:transparent;color:var(--green-800);cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;border-radius:11px;padding:9px 14px;display:inline-flex;align-items:center;gap:6px}
       .ma-mod-addopt:hover{background:var(--paper-2)}
-      .ma-mod-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:80;animation:ma-mod-fade .18s}
+      .ma-mod-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:300;padding:14px;animation:ma-mod-fade .18s}
       .ma-mod-card{background:#fff;border-radius:18px;box-shadow:0 30px 60px -24px rgba(0,0,0,.5);animation:ma-mod-pop .2s}
       .ma-mod-toggle{flex:1;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;padding:11px 10px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:#6f6353}
       .ma-mod-toggle.on{border-color:var(--green-700);background:var(--green-ok-bg);color:var(--green-ok)}

@@ -8,7 +8,8 @@ import type { Promotion, PromotionTrigger } from "@/lib/types";
 
 type Tab = "voucher" | "auto";
 
-const labelStyle: React.CSSProperties = { fontSize: 12.5, fontWeight: 700, color: "#6f6353" };
+const labelStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: "#6f6353" };
+const hintStyle: React.CSSProperties = { fontSize: 12, color: "#a99c86", marginBottom: 16 };
 
 function triggerDesc(p: Promotion): string {
   const t = p.trigger;
@@ -80,6 +81,7 @@ export function DiscountView({ onBack }: { onBack?: () => void }): JSX.Element {
 
   return (
     <>
+      <DiscountStyles />
       <header className="owner-hdr" style={{
         display: "flex", alignItems: "center", justifyContent: "space-between",
         padding: "20px 28px", borderBottom: "1px solid var(--line,#E6DBC4)",
@@ -200,15 +202,6 @@ interface ModalProps {
   onSaved: (p: Promotion) => void;
 }
 
-function ModalField({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label style={labelStyle}>{label}</label>
-      <div style={{ marginTop: 5 }}>{children}</div>
-    </div>
-  );
-}
-
 function PromotionModal({ kind, editing, availCats, onClose, onSaved }: ModalProps): JSX.Element {
   const base = editing ?? (kind === "voucher" ? EMPTY_VOUCHER : EMPTY_AUTO);
   const [name, setName] = useState(base.name);
@@ -231,12 +224,6 @@ function PromotionModal({ kind, editing, availCats, onClose, onSaved }: ModalPro
   const [triggerCount, setTriggerCount] = useState(String(base.trigger?.count ?? 1));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fld: React.CSSProperties = {
-    width: "100%", border: "1.5px solid var(--line,#E6DBC4)", borderRadius: 10,
-    padding: "9px 12px", fontSize: 13.5, outline: "none", background: "#fff",
-    fontFamily: "inherit", boxSizing: "border-box",
-  };
 
   async function save() {
     if (saving) return;
@@ -270,103 +257,111 @@ function PromotionModal({ kind, editing, availCats, onClose, onSaved }: ModalPro
   }
 
   return (
-    <div className="ma-modalbd" onClick={onClose}>
-      <div className="ma-modalcard" onClick={(e) => e.stopPropagation()}
-        style={{ width: 460, maxWidth: "95vw", maxHeight: "92vh", overflowY: "auto", padding: 26 }}>
+    <div className="dv-bd" onClick={onClose}>
+      <div className="dv-card" onClick={(e) => e.stopPropagation()}
+        style={{ width: 440, maxWidth: "92vw", maxHeight: "90vh", overflowY: "auto", padding: 22 }}>
         <div className="brand" style={{ fontSize: 20, fontWeight: 700, marginBottom: 18 }}>
           {editing ? "Edit" : "Tambah"} {kind === "voucher" ? "Kode Voucher" : "Diskon Otomatis"}
         </div>
 
         {error && <div style={{ color: "#dc2626", fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <ModalField label="Nama">
-            <input style={fld} value={name} onChange={(e) => setName(e.target.value)} placeholder={kind === "voucher" ? "cth. Promo Lebaran" : "cth. Happy Hour Sore"} autoFocus />
-          </ModalField>
+        <label style={labelStyle}>Nama</label>
+        <input className="fld" style={{ margin: "7px 0 15px" }} value={name} onChange={(e) => setName(e.target.value)}
+          placeholder={kind === "voucher" ? "cth. Promo Lebaran" : "cth. Happy Hour Sore"} autoFocus />
 
-          {kind === "voucher" && (
-            <ModalField label="Kode Voucher">
-              <input style={fld} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="cth. HEMAT20" />
-            </ModalField>
-          )}
+        {kind === "voucher" && (
+          <>
+            <label style={labelStyle}>Kode Voucher</label>
+            <input className="fld" style={{ margin: "7px 0 15px", textTransform: "uppercase" }} value={code}
+              onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="cth. HEMAT20" />
+          </>
+        )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <ModalField label="Tipe Diskon">
-              <select style={fld} value={valueType} onChange={(e) => setValueType(e.target.value as "flat" | "pct")}>
-                <option value="flat">Flat (Rp)</option>
-                <option value="pct">Persentase (%)</option>
-              </select>
-            </ModalField>
-            <ModalField label={valueType === "flat" ? "Nilai (Rp)" : "Nilai (%)"}>
-              <input style={fld} type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} />
-            </ModalField>
+        <label style={labelStyle}>Tipe Diskon</label>
+        <div style={{ display: "flex", gap: 10, margin: "7px 0 15px" }}>
+          <button type="button" className={"dv-toggle" + (valueType === "flat" ? " on" : "")} onClick={() => setValueType("flat")}>Nominal (Rp)</button>
+          <button type="button" className={"dv-toggle" + (valueType === "pct" ? " on" : "")} onClick={() => setValueType("pct")}>Persentase (%)</button>
+        </div>
+
+        <label style={labelStyle}>{valueType === "flat" ? "Nilai Potongan (Rp)" : "Besar Diskon (%)"}</label>
+        <input className="fld" style={{ margin: "7px 0 15px" }} type="number" min={0} value={value} onChange={(e) => setValue(e.target.value)} placeholder="0" />
+
+        {valueType === "pct" && (
+          <>
+            <label style={labelStyle}>Maks. Diskon (Rp)</label>
+            <input className="fld" style={{ margin: "7px 0 6px" }} type="number" min={0} value={maxValue} onChange={(e) => setMaxValue(e.target.value)} placeholder="cth. 15000" />
+            <div style={hintStyle}>Kosongkan untuk tanpa batas.</div>
+          </>
+        )}
+
+        <label style={labelStyle}>Min. Belanja (Rp)</label>
+        <input className="fld" style={{ margin: "7px 0 6px" }} type="number" min={0} value={minSpend} onChange={(e) => setMinSpend(e.target.value)} placeholder="0" />
+        <div style={hintStyle}>Isi 0 bila tanpa minimum.</div>
+
+        <label style={labelStyle}>Berlaku Untuk</label>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "7px 0 15px" }}>
+          <button type="button" className={"dv-chip" + (scope === "all" ? " on" : "")} onClick={() => setScope("all")}>
+            {scope === "all" && <Icons.check size={13} color="var(--cream)" />} Semua Kategori
+          </button>
+          {availCats.map((c) => (
+            <button key={c} type="button" className={"dv-chip" + (scope === c ? " on" : "")} onClick={() => setScope(c)}>
+              {scope === c && <Icons.check size={13} color="var(--cream)" />} {c}
+            </button>
+          ))}
+        </div>
+
+        {kind === "voucher" && (
+          <>
+            <label style={labelStyle}>Maks. Penggunaan</label>
+            <input className="fld" style={{ margin: "7px 0 6px" }} type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="cth. 100" />
+            <div style={hintStyle}>Kosongkan untuk tanpa batas.</div>
+
+            <label style={labelStyle}>Kadaluarsa</label>
+            <input className="fld" style={{ margin: "7px 0 15px" }} type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
+          </>
+        )}
+
+        {kind === "auto" && (
+          <>
+            <label style={labelStyle}>Trigger Otomatis</label>
+            <div style={{ display: "flex", gap: 8, margin: "7px 0 12px" }}>
+              <button type="button" className={"dv-toggle" + (triggerType === "time" ? " on" : "")} onClick={() => setTriggerType("time")}>Jam</button>
+              <button type="button" className={"dv-toggle" + (triggerType === "minSpend" ? " on" : "")} onClick={() => setTriggerType("minSpend")}>Min. Belanja</button>
+              <button type="button" className={"dv-toggle" + (triggerType === "qty" ? " on" : "")} onClick={() => setTriggerType("qty")}>Jumlah Item</button>
+            </div>
+            {triggerType === "time" && (
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 15 }}>
+                <input className="fld" type="time" value={triggerFrom} onChange={(e) => setTriggerFrom(e.target.value)} />
+                <span style={{ color: "#8b7f6c" }}>–</span>
+                <input className="fld" type="time" value={triggerTo} onChange={(e) => setTriggerTo(e.target.value)} />
+              </div>
+            )}
+            {triggerType === "minSpend" && (
+              <input className="fld" style={{ marginBottom: 15 }} type="number" min={0} value={triggerAmount} onChange={(e) => setTriggerAmount(e.target.value)} placeholder="cth. 50000" />
+            )}
+            {triggerType === "qty" && (
+              <input className="fld" style={{ marginBottom: 15 }} type="number" min={1} value={triggerCount} onChange={(e) => setTriggerCount(e.target.value)} placeholder="cth. 3" />
+            )}
+          </>
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "12px 0 0", borderTop: "1px solid var(--line)", marginTop: 4 }}>
+          <Switch on={stackable} onClick={() => setStackable((v) => !v)} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Bisa digabung</div>
+            <div style={{ fontSize: 12, color: "#8b7f6c" }}>Diterapkan bersama diskon lain</div>
           </div>
-
-          {valueType === "pct" && (
-            <ModalField label="Maks. Diskon (Rp, kosong = tak terbatas)">
-              <input style={fld} type="number" min={0} value={maxValue} onChange={(e) => setMaxValue(e.target.value)} placeholder="cth. 15000" />
-            </ModalField>
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <ModalField label="Min. Belanja (Rp)">
-              <input style={fld} type="number" min={0} value={minSpend} onChange={(e) => setMinSpend(e.target.value)} placeholder="0" />
-            </ModalField>
-            <ModalField label="Berlaku Untuk">
-              <select style={fld} value={scope} onChange={(e) => setScope(e.target.value)}>
-                <option value="all">Semua Kategori</option>
-                {availCats.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </ModalField>
-          </div>
-
-          {kind === "voucher" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <ModalField label="Maks. Penggunaan (kosong = ∞)">
-                <input style={fld} type="number" min={1} value={maxUses} onChange={(e) => setMaxUses(e.target.value)} placeholder="cth. 100" />
-              </ModalField>
-              <ModalField label="Kadaluarsa (opsional)">
-                <input style={fld} type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)} />
-              </ModalField>
-            </div>
-          )}
-
-          {kind === "auto" && (
-            <ModalField label="Trigger">
-              <select style={{ ...fld, marginBottom: 8 }} value={triggerType} onChange={(e) => setTriggerType(e.target.value as PromotionTrigger["type"])}>
-                <option value="time">Jam (Happy Hour)</option>
-                <option value="minSpend">Min. Belanja</option>
-                <option value="qty">Jumlah Item</option>
-              </select>
-              {triggerType === "time" && (
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <input style={{ ...fld, flex: 1 }} type="time" value={triggerFrom} onChange={(e) => setTriggerFrom(e.target.value)} />
-                  <span style={{ color: "#8b7f6c" }}>–</span>
-                  <input style={{ ...fld, flex: 1 }} type="time" value={triggerTo} onChange={(e) => setTriggerTo(e.target.value)} />
-                </div>
-              )}
-              {triggerType === "minSpend" && (
-                <input style={fld} type="number" min={0} value={triggerAmount} onChange={(e) => setTriggerAmount(e.target.value)} placeholder="cth. 50000" />
-              )}
-              {triggerType === "qty" && (
-                <input style={fld} type="number" min={1} value={triggerCount} onChange={(e) => setTriggerCount(e.target.value)} placeholder="cth. 3" />
-              )}
-            </ModalField>
-          )}
-
-          <div style={{ display: "flex", gap: 18, paddingTop: 4 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Switch on={stackable} onClick={() => setStackable((v) => !v)} />
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Bisa digabung</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Switch on={enabled} onClick={() => setEnabled((v) => !v)} />
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>Aktif</span>
-            </div>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 11, padding: "11px 0 2px" }}>
+          <Switch on={enabled} onClick={() => setEnabled((v) => !v)} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Aktif</div>
+            <div style={{ fontSize: 12, color: "#8b7f6c" }}>Langsung berlaku setelah disimpan</div>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 11, marginTop: 22 }}>
+        <div style={{ display: "flex", gap: 11, marginTop: 20 }}>
           <button type="button" onClick={onClose} className="btn"
             style={{ flex: 1, padding: 13, borderRadius: 13, background: "#fff", color: "var(--ink)", border: "1.5px solid var(--line)" }}>
             Batal
@@ -378,5 +373,20 @@ function PromotionModal({ kind, editing, availCats, onClose, onSaved }: ModalPro
         </div>
       </div>
     </div>
+  );
+}
+
+function DiscountStyles(): JSX.Element {
+  return (
+    <style>{`
+      .dv-bd{position:fixed;inset:0;background:rgba(28,20,12,.5);display:grid;place-items:center;z-index:80;padding:16px;animation:dv-fade .18s}
+      .dv-card{background:#fff;border-radius:18px;box-shadow:0 30px 60px -24px rgba(0,0,0,.5);animation:dv-pop .2s}
+      .dv-toggle{flex:1;cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;padding:11px 8px;border-radius:11px;border:1.5px solid var(--line);background:#fff;color:#6f6353}
+      .dv-toggle.on{border-color:var(--green-700);background:var(--green-ok-bg);color:var(--green-ok)}
+      .dv-chip{cursor:pointer;font-family:inherit;font-weight:700;font-size:13px;padding:8px 14px;border-radius:999px;border:1.5px solid var(--line);background:#fff;color:#6f6353;display:inline-flex;align-items:center;gap:5px}
+      .dv-chip.on{border-color:var(--green-800);background:var(--green-800);color:var(--cream)}
+      @keyframes dv-fade{from{opacity:0}}
+      @keyframes dv-pop{from{opacity:0;transform:translateY(8px) scale(.98)}}
+    `}</style>
   );
 }

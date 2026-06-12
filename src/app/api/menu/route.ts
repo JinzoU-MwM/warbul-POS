@@ -48,10 +48,6 @@ export async function POST(req: NextRequest) {
     ) {
       throw new Error("grad must be an array of 2 strings");
     }
-    if (typeof body.stock !== "number" || !Number.isFinite(body.stock) || body.stock < 0) {
-      throw new Error("stock must be a number >= 0");
-    }
-
     const product = await createProduct({
       id: body.id,
       name: body.name,
@@ -61,7 +57,7 @@ export async function POST(req: NextRequest) {
       grad: body.grad as [string, string],
       tag: body.tag ?? null,
       available: body.available ?? true,
-      stock: body.stock,
+      stock: typeof body.stock === "number" ? body.stock : 0,
       desc: body.desc ?? "",
     });
 

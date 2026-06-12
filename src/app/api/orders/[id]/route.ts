@@ -21,13 +21,17 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession();
-    if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
     const { id } = await ctx.params;
     const existing = await getOrder(id);
     if (!existing) return NextResponse.json({ order: null }, { status: 404 });
 
     const patch = (await req.json()) as Partial<Order>;
+
+    // Unauthenticated customers may only cancel their own unpaid orders.
+    const isCustomerCancel = !session?.user && patch.status === ORDER_STATUS.CANCELLED;
+    if (!session?.user && !isCustomerCancel) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     if (patch.status === ORDER_STATUS.CANCELLED && existing.status !== ORDER_STATUS.WAIT_PAY) {
       return NextResponse.json({ error: "Pesanan sudah dibayar, tidak bisa dibatalkan" }, { status: 409 });

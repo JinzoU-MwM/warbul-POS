@@ -21,16 +21,17 @@ export interface OwnerUser {
 interface NavItem {
   id: OwnerView;
   label: string;
+  short: string;
   icon: keyof typeof Icons;
 }
 
 const NAV: NavItem[] = [
-  { id: "overview", label: "Ringkasan", icon: "home" },
-  { id: "report", label: "Laporan Penjualan", icon: "chart" },
-  { id: "orders", label: "Pesanan", icon: "orders" },
-  { id: "menu", label: "Manajemen Menu", icon: "menu" },
-  { id: "stock", label: "Bahan Baku", icon: "bag" },
-  { id: "settings", label: "Pengaturan", icon: "gear" },
+  { id: "overview", label: "Ringkasan", short: "Ringkasan", icon: "home" },
+  { id: "report", label: "Laporan Penjualan", short: "Laporan", icon: "chart" },
+  { id: "orders", label: "Pesanan", short: "Pesanan", icon: "orders" },
+  { id: "menu", label: "Manajemen Menu", short: "Menu", icon: "menu" },
+  { id: "stock", label: "Bahan Baku", short: "Stok", icon: "bag" },
+  { id: "settings", label: "Pengaturan", short: "Setelan", icon: "gear" },
 ];
 
 export function OwnerApp({ user }: { user: OwnerUser }) {
@@ -126,7 +127,7 @@ export function OwnerApp({ user }: { user: OwnerUser }) {
         </div>
       </aside>
 
-      <main style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden" }}>
+      <main className="owner-main-m" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", height: "100dvh", overflow: "hidden" }}>
         {view === "overview" && <OverviewView userName={user.name} />}
         {view === "report" && <ReportView />}
         {view === "orders" && <OrdersView cashierName={user.name} />}
@@ -134,6 +135,20 @@ export function OwnerApp({ user }: { user: OwnerUser }) {
         {view === "stock" && <IngredientsView />}
         {view === "settings" && <SettingsView />}
       </main>
+
+      {/* Mobile bottom nav — visible only on ≤768px via CSS */}
+      <nav className="owner-bottomnav">
+        {NAV.map((n) => {
+          const Icon = Icons[n.icon];
+          const on = view === n.id;
+          return (
+            <button key={n.id} className={"owner-bni" + (on ? " on" : "")} onClick={() => setView(n.id)}>
+              <Icon size={22} />
+              <span>{n.short}</span>
+            </button>
+          );
+        })}
+      </nav>
     </div>
   );
 }
@@ -181,6 +196,35 @@ function OwnerStyles() {
         .owner-brand-text,.owner-navlabel,.owner-branchbox{display:none}
         .owner-navitem{justify-content:center;padding:12px}
         .owner-grid2{grid-template-columns:1fr!important}
+      }
+
+      /* ── mobile bottom nav (≤768px) ── */
+      .owner-bottomnav{display:none}
+      @media(max-width:768px){
+        .owner-sidebar{display:none!important}
+        .owner-bottomnav{
+          display:flex;position:fixed;bottom:0;left:0;right:0;
+          height:62px;background:var(--green-900);z-index:200;
+          align-items:stretch;border-top:1px solid rgba(255,255,255,.12);
+          padding-bottom:env(safe-area-inset-bottom,0px);
+        }
+        .owner-bni{
+          flex:1;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;gap:3px;border:none;background:none;
+          cursor:pointer;font-family:inherit;color:rgba(244,237,217,.55);
+          font-size:9.5px;font-weight:600;padding:6px 2px;transition:.15s;
+          letter-spacing:.01em;
+        }
+        .owner-bni.on{color:var(--gold)}
+        .owner-bni:active{opacity:.7}
+        .owner-main-m{padding-bottom:62px}
+        .owner-rangebar{gap:2px}
+        .owner-rangebtn{padding:7px 10px;font-size:12px}
+        .owner-exportbtn{padding:9px 12px;font-size:12.5px}
+        .owner-iconbtn{width:38px;height:38px}
+        .settings-form-grid{grid-template-columns:1fr!important}
+        .owner-hdr{padding-left:16px!important;padding-right:16px!important}
+        .owner-body{padding-left:16px!important;padding-right:16px!important}
       }
     `}</style>
   );

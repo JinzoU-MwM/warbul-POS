@@ -113,6 +113,7 @@ export function SettingsView(): JSX.Element {
   return (
     <>
       <header
+        className="owner-hdr"
         style={{
           display: "flex",
           alignItems: "center",
@@ -139,6 +140,7 @@ export function SettingsView(): JSX.Element {
 
       {/* Anchor pills */}
       <div
+        className="owner-hdr"
         style={{
           display: "flex",
           gap: 6,
@@ -173,14 +175,14 @@ export function SettingsView(): JSX.Element {
         ))}
       </div>
 
-      <div ref={scrollRef} style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
+      <div ref={scrollRef} className="owner-body" style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
         <div style={{ maxWidth: 760 }}>
 
           {/* Profil Toko */}
           {form ? (
             <>
               <Section id="profil-toko" title="Profil Toko" desc="Informasi cabang yang tampil di struk & menu">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="settings-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
                   <Field label="Nama Toko">
                     <input className="fld" value={form.storeName} onChange={(e) => set("storeName", e.target.value)} />
                   </Field>
@@ -208,7 +210,7 @@ export function SettingsView(): JSX.Element {
               <Section id="pembayaran" title="Pembayaran" desc="Metode yang bisa dipilih pelanggan & biaya tambahan">
                 <ToggleRow k="payQris" label="QRIS" desc="Pembayaran mandiri via scan QRIS pemilik" />
                 <ToggleRow k="payKasir" label="Bayar di Kasir" desc="Bayar tunai atau kartu langsung di kasir" />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 18 }}>
+                <div className="settings-form-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 18 }}>
                   <Field label="Nama Merchant QRIS">
                     <input className="fld" value={form.qrisMerchant} onChange={(e) => set("qrisMerchant", e.target.value)} />
                   </Field>

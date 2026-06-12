@@ -58,6 +58,7 @@ export function ReportView() {
   return (
     <>
       <header
+        className="owner-hdr"
         style={{
           display: "flex",
           alignItems: "center",
@@ -91,10 +92,10 @@ export function ReportView() {
         </div>
       </header>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
+      <div className="owner-body" style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
         {report && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(210px,1fr))", gap: 18 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 14 }}>
               {[
                 { l: "Pendapatan Bersih", v: rupiah(report.summary.net), Icon: Icons.wallet, c: "var(--green-700)", bg: "#E4EEE4" },
                 { l: "Total Pesanan", v: report.summary.orders.toLocaleString("id-ID"), Icon: Icons.bag, c: "var(--coffee)", bg: "#F1E6D6" },

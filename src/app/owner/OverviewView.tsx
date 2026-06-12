@@ -109,6 +109,7 @@ export function OverviewView({ userName }: { userName: string }) {
   return (
     <>
       <header
+        className="owner-hdr"
         style={{
           display: "flex",
           alignItems: "center",
@@ -158,7 +159,7 @@ export function OverviewView({ userName }: { userName: string }) {
         </div>
       </header>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
+      <div className="owner-body" style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
         {data && (
           <>
             <KpiCards data={data} />
@@ -243,7 +244,7 @@ function NotifPanel({ orders, lowStock, lastSeen, onMarkAll }: NotifPanelProps):
   return (
     <div style={{
       position: "absolute", top: "calc(100% + 10px)", right: 0, zIndex: 100,
-      width: 320, background: "#fff", borderRadius: 16,
+      width: "min(320px, calc(100vw - 20px))", background: "#fff", borderRadius: 16,
       boxShadow: "0 16px 40px -8px rgba(0,0,0,.22)", border: "1px solid var(--cream-200)",
       overflow: "hidden",
     }}>
@@ -328,7 +329,7 @@ function KpiCards({ data }: { data: AnalyticsSummary }) {
     { l: "Menu Terjual", v: data.itemsSold.toLocaleString("id-ID"), delta: data.deltas.itemsSold, Icon: CubeIcon, c: "var(--orange-600)", bg: "#F8EAD6", sub: "vs periode sebelumnya" },
   ];
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 18 }}>
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 14 }}>
       {cards.map((c) => {
         const Icon = c.Icon;
         const up = c.delta >= 0;

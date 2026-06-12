@@ -22,6 +22,11 @@ export const Icons: Record<string, Icon> = {
       <path d="M15 19l-7-7 7-7" stroke={color} strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+  chevron: ({ size = 18, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M9 6l6 6-6 6" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
   cart: ({ size = 20, color = "currentColor" }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M5 7h15l-1.5 9.5a2 2 0 0 1-2 1.7H8.5a2 2 0 0 1-2-1.7L5 4H2" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

@@ -2,7 +2,7 @@
 import { useEffect, useState, type JSX } from "react";
 import { getPromotions, createPromotion, updatePromotion, deletePromotion } from "@/lib/api";
 import { useCategories } from "@/lib/use-categories";
-import { Switch } from "@/components";
+import { Switch, Icons } from "@/components";
 import { rupiah } from "@/lib/constants";
 import type { Promotion, PromotionTrigger } from "@/lib/types";
 
@@ -87,8 +87,8 @@ export function DiscountView({ onBack }: { onBack?: () => void }): JSX.Element {
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           {onBack && (
-            <button onClick={onBack} style={{ background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13.5, color: "var(--green-700)", padding: 0 }}>
-              ← Pengaturan
+            <button onClick={onBack} style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "none", border: "none", cursor: "pointer", fontFamily: "inherit", fontWeight: 700, fontSize: 13, color: "var(--green-700)", padding: 0 }}>
+              <Icons.back size={16} /> Pengaturan
             </button>
           )}
           <div>

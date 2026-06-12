@@ -1,0 +1,122 @@
+<h2>Desain Panel Notifikasi</h2>
+<p class="subtitle">Bell button di header owner → dropdown panel. Orange dot hilang saat dibuka (disimpan di localStorage).</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:860px;margin:0 auto">
+
+  <!-- Left: header context -->
+  <div>
+    <p class="label" style="margin-bottom:10px">POSISI DI HEADER</p>
+    <!-- Mock owner header -->
+    <div style="background:#21342A;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:sans-serif">
+      <span style="color:#F0BE48;font-weight:800;font-size:15px">Overview</span>
+      <div style="display:flex;align-items:center;gap:10px">
+        <!-- range bar mock -->
+        <div style="background:rgba(255,255,255,.08);border-radius:8px;padding:4px 6px;display:flex;gap:3px">
+          <span style="background:#F0BE48;color:#3A2618;font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px">Hari Ini</span>
+          <span style="color:rgba(244,237,217,.5);font-size:10px;font-weight:600;padding:3px 7px">Minggu</span>
+          <span style="color:rgba(244,237,217,.5);font-size:10px;font-weight:600;padding:3px 7px">Bulan</span>
+        </div>
+        <!-- bell button with dot -->
+        <div style="position:relative;width:34px;height:34px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#F4EDD9" stroke-width="2"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <!-- orange dot -->
+          <span style="position:absolute;top:7px;right:7px;width:8px;height:8px;border-radius:50%;background:#F97316;border:1.5px solid #21342A"></span>
+        </div>
+        <div style="background:#F0BE48;color:#3A2618;font-size:10px;font-weight:700;padding:5px 10px;border-radius:7px;display:flex;align-items:center;gap:5px">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Ekspor
+        </div>
+      </div>
+    </div>
+
+    <p class="label" style="margin:18px 0 10px">PANEL TERBUKA (dropdown di bawah bell)</p>
+    <!-- Notification panel -->
+    <div style="background:#fff;border-radius:14px;box-shadow:0 12px 32px -8px rgba(0,0,0,.2);border:1px solid #eee;overflow:hidden;font-family:sans-serif;width:300px">
+      <!-- header -->
+      <div style="background:#21342A;padding:12px 14px;display:flex;align-items:center;justify-content:space-between">
+        <span style="color:#F4EDD9;font-weight:700;font-size:13px">Notifikasi</span>
+        <span style="color:rgba(244,237,217,.5);font-size:11px;cursor:pointer">Tandai semua dibaca</span>
+      </div>
+
+      <!-- Section: Pesanan Baru -->
+      <div style="padding:8px 0">
+        <div style="padding:4px 14px 6px;font-size:10px;font-weight:700;color:#9CA3AF;letter-spacing:.08em">PESANAN BARU</div>
+
+        <!-- order item - unread -->
+        <div style="padding:9px 14px;display:flex;gap:10px;align-items:flex-start;background:#FFFBF0;border-left:3px solid #F0BE48">
+          <div style="width:8px;height:8px;border-radius:50%;background:#F97316;margin-top:4px;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;font-weight:600;color:#2A2018">WB-042 · Meja 3</div>
+            <div style="font-size:11px;color:#6B7280;margin-top:1px">Rp 45.000 · 2 menit lalu</div>
+          </div>
+        </div>
+
+        <!-- order item - unread -->
+        <div style="padding:9px 14px;display:flex;gap:10px;align-items:flex-start;background:#FFFBF0;border-left:3px solid #F0BE48">
+          <div style="width:8px;height:8px;border-radius:50%;background:#F97316;margin-top:4px;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;font-weight:600;color:#2A2018">WB-041 · Meja 7</div>
+            <div style="font-size:11px;color:#6B7280;margin-top:1px">Rp 28.000 · 8 menit lalu</div>
+          </div>
+        </div>
+
+        <!-- order item - read -->
+        <div style="padding:9px 14px;display:flex;gap:10px;align-items:flex-start;border-left:3px solid transparent">
+          <div style="width:8px;height:8px;border-radius:50%;background:#D1D5DB;margin-top:4px;flex-shrink:0"></div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;font-weight:500;color:#6B7280">WB-040 · Takeaway</div>
+            <div style="font-size:11px;color:#9CA3AF;margin-top:1px">Rp 18.000 · 24 menit lalu</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:#F3F4F6;margin:0 14px"></div>
+
+      <!-- Section: Stok Habis -->
+      <div style="padding:8px 0 10px">
+        <div style="padding:4px 14px 6px;font-size:10px;font-weight:700;color:#9CA3AF;letter-spacing:.08em">STOK MENIPIS</div>
+
+        <div style="padding:9px 14px;display:flex;gap:10px;align-items:center;background:#FFF7F0;border-left:3px solid #F97316">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F97316" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg>
+          <div>
+            <div style="font-size:12.5px;font-weight:600;color:#2A2018">Biji Kopi Arabika</div>
+            <div style="font-size:11px;color:#6B7280">Sisa 50g · minimum 200g</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: behavior notes -->
+  <div>
+    <p class="label" style="margin-bottom:10px">CARA KERJA</p>
+    <div class="section">
+      <h3>Orange dot (unread)</h3>
+      <p>Muncul saat ada pesanan baru atau stok menipis <em>setelah</em> terakhir kali panel dibuka. Timestamp "terakhir dibaca" disimpan di localStorage. Klik bell → timestamp diperbarui → dot hilang.</p>
+    </div>
+    <div class="section">
+      <h3>Isi panel</h3>
+      <p><strong>Pesanan Baru</strong> — 10 pesanan terbaru hari ini, diambil dari data analytics yang sudah ada. Hanya tampil jika toggle <code>notifyNewOrder</code> aktif.<br><br>
+      <strong>Stok Menipis</strong> — bahan baku di bawah threshold, diambil dari data lowStock yang sudah ada di OverviewView. Hanya tampil jika toggle <code>notifyOutOfStock</code> aktif.</p>
+    </div>
+    <div class="section">
+      <h3>Data baru, bukan baru dari DB</h3>
+      <p>Tidak perlu tabel DB baru. Panel membaca dari endpoint <code>/api/orders</code> (sudah ada) dan data <code>lowStock</code> dari analytics summary (sudah ada). SSE/polling yang sudah jalan otomatis menjaga panel tetap fresh.</p>
+    </div>
+    <div class="section">
+      <h3>Settings</h3>
+      <p>Toggle <code>notifyDailyReport</code> dihapus dari SettingsView dan dari tipe <code>StoreSettings</code>. Dua toggle yang tersisa langsung mengontrol section mana yang tampil di panel.</p>
+    </div>
+
+    <div class="options" style="margin-top:20px">
+      <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+        <div class="letter">✓</div>
+        <div class="content"><h3>Approve</h3><p>Lanjut ke order cancellation</p></div>
+      </div>
+      <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+        <div class="letter">↺</div>
+        <div class="content"><h3>Revisi</h3><p>Ada yang perlu diubah</p></div>
+      </div>
+    </div>
+  </div>
+</div>

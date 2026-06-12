@@ -1,0 +1,88 @@
+<h2>Category management section in Pengaturan</h2>
+<p class="subtitle">Inside the scrollable Settings page — how should category CRUD look?</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="A" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f9f6f0;border-bottom:1px solid #e6dbc4">
+      <!-- Option A: Inline list with edit-in-place -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e6dbc4;overflow:hidden">
+        <div style="padding:10px 14px;border-bottom:1px solid #e6dbc4;display:flex;align-items:center;justify-content:space-between">
+          <div style="font-size:12px;font-weight:700;color:#1a1207">Kategori Menu</div>
+          <div style="font-size:10px;font-weight:700;padding:4px 10px;background:#3E5C46;color:#fff;border-radius:8px">+ Tambah</div>
+        </div>
+        <!-- Category rows -->
+        <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f3ede0">
+          <div style="color:#c9b89a;font-size:14px">⠿</div>
+          <div style="flex:1;font-size:12px;font-weight:600">Kopi</div>
+          <div style="font-size:10px;color:#9ca3af">6 menu</div>
+          <div style="font-size:11px;color:#6f6353;cursor:pointer">✏</div>
+          <div style="font-size:11px;color:#d1d5db;cursor:not-allowed">🗑</div>
+        </div>
+        <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f3ede0;background:#fffbf0">
+          <div style="color:#c9b89a;font-size:14px">⠿</div>
+          <div style="flex:1"><input style="font-size:12px;font-weight:600;border:1.5px solid #3E5C46;border-radius:6px;padding:2px 6px;width:80px" value="Non-Kopi"/></div>
+          <div style="font-size:10px;color:#3E5C46;font-weight:700;cursor:pointer">Simpan</div>
+        </div>
+        <div style="padding:8px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #f3ede0">
+          <div style="color:#c9b89a;font-size:14px">⠿</div>
+          <div style="flex:1;font-size:12px;font-weight:600">Makanan</div>
+          <div style="font-size:10px;color:#9ca3af">4 menu</div>
+          <div style="font-size:11px;color:#6f6353;cursor:pointer">✏</div>
+          <div style="font-size:11px;color:#ef4444;cursor:pointer">🗑</div>
+        </div>
+        <div style="padding:8px 14px;display:flex;align-items:center;gap:8px">
+          <div style="color:#c9b89a;font-size:14px">⠿</div>
+          <div style="flex:1;font-size:12px;font-weight:600">Snack</div>
+          <div style="font-size:10px;color:#9ca3af">2 menu</div>
+          <div style="font-size:11px;color:#6f6353;cursor:pointer">✏</div>
+          <div style="font-size:11px;color:#ef4444;cursor:pointer">🗑</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Inline edit-in-place</h3>
+      <p>Click ✏ to edit the name in-row. Drag handle (⠿) for reordering. Trash icon red when deletable, grey when blocked (has products).</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="B" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f9f6f0;border-bottom:1px solid #e6dbc4">
+      <!-- Option B: Chip/tag style with modal add -->
+      <div style="background:#fff;border-radius:12px;border:1px solid #e6dbc4;padding:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:12px;font-weight:700;color:#1a1207">Kategori Menu</div>
+          <div style="font-size:10px;font-weight:700;padding:4px 10px;background:#3E5C46;color:#fff;border-radius:8px">+ Tambah</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f0f9f2;border:1.5px solid #3E5C46;border-radius:999px">
+            <span style="font-size:11px;font-weight:700;color:#3E5C46">Kopi</span>
+            <span style="font-size:9px;color:#6b7280">6</span>
+            <span style="font-size:10px;color:#9ca3af">✕</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f0f9f2;border:1.5px solid #3E5C46;border-radius:999px">
+            <span style="font-size:11px;font-weight:700;color:#3E5C46">Non-Kopi</span>
+            <span style="font-size:9px;color:#6b7280">3</span>
+            <span style="font-size:10px;color:#9ca3af">✕</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f0f9f2;border:1.5px solid #3E5C46;border-radius:999px">
+            <span style="font-size:11px;font-weight:700;color:#3E5C46">Makanan</span>
+            <span style="font-size:9px;color:#6b7280">4</span>
+            <span style="font-size:10px;color:#ef4444">✕</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f0f9f2;border:1.5px solid #3E5C46;border-radius:999px">
+            <span style="font-size:11px;font-weight:700;color:#3E5C46">Snack</span>
+            <span style="font-size:9px;color:#6b7280">0</span>
+            <span style="font-size:10px;color:#ef4444">✕</span>
+          </div>
+        </div>
+        <div style="margin-top:10px;font-size:10px;color:#9ca3af">✕ abu-abu = tidak bisa dihapus (ada produk). ✕ merah = bisa dihapus.</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Chip / tag style</h3>
+      <p>Categories shown as pills. Click a pill to rename via small popover. ✕ to delete (red = safe, grey = blocked). No drag reorder.</p>
+    </div>
+  </div>
+
+</div>

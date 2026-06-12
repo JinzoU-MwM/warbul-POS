@@ -1,11 +1,11 @@
 "use client";
 // Create / edit a menu item. Validates name non-empty and price >= 0, then
 // calls updateProduct (existing id) or createProduct (new).
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { JSX } from "react";
-import type { Category, Glyph, Product } from "@/lib/types";
-import { CATS } from "@/lib/constants";
+import type { Glyph, Product } from "@/lib/types";
 import { createProduct, updateProduct } from "@/lib/api";
+import { useCategories } from "@/lib/use-categories";
 import { Switch } from "@/components";
 
 /** A blank draft (no id) opens the modal in "create" mode. */
@@ -26,9 +26,11 @@ const GLYPHS: { id: Glyph; label: string }[] = [
 const labelStyle: React.CSSProperties = { fontSize: 13, fontWeight: 700, color: "#6f6353" };
 
 export function MenuAdminEditModal({ item, onClose, onSaved }: MenuAdminEditModalProps): JSX.Element {
+  const availCats = useCategories();
   const [name, setName] = useState(item.name ?? "");
+  useEffect(() => { if (!cat && availCats.length) setCat(availCats[0]); }, [availCats]);
   const [price, setPrice] = useState<string>(item.price != null ? String(item.price) : "");
-  const [cat, setCat] = useState<Category>(item.cat ?? "Kopi");
+  const [cat, setCat] = useState<string>(item.cat ?? "");
   const [g, setG] = useState<Glyph>(item.g ?? "cup");
   const [from, setFrom] = useState(item.grad?.[0] ?? "#6F4A2C");
   const [to, setTo] = useState(item.grad?.[1] ?? "#3C2618");
@@ -100,9 +102,9 @@ export function MenuAdminEditModal({ item, onClose, onSaved }: MenuAdminEditModa
               className="ma-fld"
               style={{ margin: "7px 0 15px" }}
               value={cat}
-              onChange={(e) => setCat(e.target.value as Category)}
+              onChange={(e) => setCat(e.target.value)}
             >
-              {CATS.map((c) => <option key={c} value={c}>{c}</option>)}
+              {availCats.map((c) => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div style={{ flex: 1 }}>

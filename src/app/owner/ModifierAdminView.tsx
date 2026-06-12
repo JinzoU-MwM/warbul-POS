@@ -13,7 +13,8 @@ import {
   deleteModifierOption,
 } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
-import { CATS, rupiah } from "@/lib/constants";
+import { rupiah } from "@/lib/constants";
+import { useCategories } from "@/lib/use-categories";
 import { Switch, Icons, RecipeEditor } from "@/components";
 import type { Category, ModGroupFull, ModOption, ModType } from "@/lib/types";
 
@@ -289,6 +290,7 @@ function GroupEditor({
   onClose: () => void;
   onSaved: () => void;
 }): JSX.Element {
+  const availCats = useCategories();
   const [name, setName] = useState(draft.name);
   const [type, setType] = useState<ModType>(draft.type);
   const [categories, setCategories] = useState<Category[]>(draft.categories);
@@ -354,7 +356,7 @@ function GroupEditor({
 
         <label style={labelStyle}>Kategori Menu</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "7px 0 20px" }}>
-          {CATS.map((c) => (
+          {availCats.map((c) => (
             <button
               key={c}
               type="button"

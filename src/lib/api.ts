@@ -134,6 +134,25 @@ export async function setRecipe(ownerType: "product" | "option", ownerId: string
   await j(await fetch("/api/recipes", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ownerType, ownerId, items }) }));
 }
 
+/* ── categories ── */
+export interface CategoryRow { id: string; name: string; position: number; }
+export async function getCategories(): Promise<CategoryRow[]> {
+  return j<CategoryRow[]>(await fetch("/api/categories", { cache: "no-store" }));
+}
+export async function createCategory(name: string): Promise<CategoryRow> {
+  return j<CategoryRow>(await fetch("/api/categories", {
+    method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }),
+  }));
+}
+export async function renameCategory(id: string, name: string): Promise<void> {
+  await j(await fetch(`/api/categories/${id}`, {
+    method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ name }),
+  }));
+}
+export async function deleteCategory(id: string): Promise<void> {
+  await j(await fetch(`/api/categories/${id}`, { method: "DELETE" }));
+}
+
 /* ── public config (customer-safe) ── */
 export interface PublicConfig {
   storeName: string;

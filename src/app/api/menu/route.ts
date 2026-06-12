@@ -2,9 +2,8 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getMenu, createProduct } from "@/lib/store";
+import { getMenu, createProduct, getCategories } from "@/lib/store";
 import { getServerSession } from "@/lib/session";
-import { CATS } from "@/lib/constants";
 import type { Product } from "@/lib/types";
 
 const GLYPHS: Product["g"][] = ["cup", "bowl", "fries"];
@@ -34,8 +33,9 @@ export async function POST(req: NextRequest) {
     if (typeof body.price !== "number" || !Number.isFinite(body.price) || body.price < 0) {
       throw new Error("price must be a number >= 0");
     }
-    if (typeof body.cat !== "string" || !CATS.includes(body.cat as Product["cat"])) {
-      throw new Error("cat must be one of " + CATS.join(", "));
+    const validCats = await getCategories();
+    if (typeof body.cat !== "string" || !validCats.some((c) => c.name === body.cat)) {
+      throw new Error("cat must be one of " + validCats.map((c) => c.name).join(", "));
     }
     if (typeof body.g !== "string" || !GLYPHS.includes(body.g as Product["g"])) {
       throw new Error("g must be one of cup, bowl, fries");

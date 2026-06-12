@@ -1,0 +1,84 @@
+<h2>How should the expanded Settings page be organized?</h2>
+<p class="subtitle">Settings now has 6 sections — Profil Toko, Pembayaran, Notifikasi, Kategori, Add-on & Varian, QR Meja</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="A" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f9f6f0;border-bottom:1px solid #e6dbc4">
+      <!-- Option A: Top tab bar -->
+      <div style="display:flex;gap:0;border-bottom:2px solid #e6dbc4;margin-bottom:12px;overflow-x:auto">
+        <div style="padding:7px 13px;font-size:11px;font-weight:700;color:#3E5C46;border-bottom:2px solid #3E5C46;margin-bottom:-2px;white-space:nowrap">Profil Toko</div>
+        <div style="padding:7px 13px;font-size:11px;font-weight:600;color:#9CA3AF;white-space:nowrap">Pembayaran</div>
+        <div style="padding:7px 13px;font-size:11px;font-weight:600;color:#9CA3AF;white-space:nowrap">Notifikasi</div>
+        <div style="padding:7px 13px;font-size:11px;font-weight:600;color:#9CA3AF;white-space:nowrap">Kategori</div>
+        <div style="padding:7px 13px;font-size:11px;font-weight:600;color:#9CA3AF;white-space:nowrap">Add-on</div>
+        <div style="padding:7px 13px;font-size:11px;font-weight:600;color:#9CA3AF;white-space:nowrap">QR Meja</div>
+      </div>
+      <div style="background:#fff;border-radius:12px;padding:12px;border:1px solid #e6dbc4">
+        <div style="font-size:11px;font-weight:700;color:#6f6353;margin-bottom:8px">PROFIL TOKO</div>
+        <div style="height:8px;background:#e6dbc4;border-radius:4px;margin-bottom:6px;width:80%"></div>
+        <div style="height:8px;background:#e6dbc4;border-radius:4px;margin-bottom:6px;width:60%"></div>
+        <div style="height:8px;background:#e6dbc4;border-radius:4px;width:70%"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Tab bar across the top</h3>
+      <p>Horizontal tabs, one section visible at a time. Clean, but tabs can get cramped on smaller screens.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="B" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f9f6f0;border-bottom:1px solid #e6dbc4">
+      <!-- Option B: Left sidebar tabs -->
+      <div style="display:flex;gap:10px;height:130px">
+        <div style="width:90px;flex-shrink:0;display:flex;flex-direction:column;gap:3px">
+          <div style="padding:6px 10px;font-size:10px;font-weight:700;background:#3E5C46;color:#fff;border-radius:8px">Profil Toko</div>
+          <div style="padding:6px 10px;font-size:10px;font-weight:600;color:#6f6353;border-radius:8px">Pembayaran</div>
+          <div style="padding:6px 10px;font-size:10px;font-weight:600;color:#6f6353;border-radius:8px">Notifikasi</div>
+          <div style="padding:6px 10px;font-size:10px;font-weight:600;color:#6f6353;border-radius:8px">Kategori</div>
+          <div style="padding:6px 10px;font-size:10px;font-weight:600;color:#6f6353;border-radius:8px">Add-on</div>
+          <div style="padding:6px 10px;font-size:10px;font-weight:600;color:#6f6353;border-radius:8px">QR Meja</div>
+        </div>
+        <div style="flex:1;background:#fff;border-radius:12px;padding:12px;border:1px solid #e6dbc4">
+          <div style="font-size:11px;font-weight:700;color:#6f6353;margin-bottom:8px">PROFIL TOKO</div>
+          <div style="height:8px;background:#e6dbc4;border-radius:4px;margin-bottom:6px;width:90%"></div>
+          <div style="height:8px;background:#e6dbc4;border-radius:4px;margin-bottom:6px;width:70%"></div>
+          <div style="height:8px;background:#e6dbc4;border-radius:4px;width:80%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Left sidebar tabs</h3>
+      <p>Vertical tab list on the left, content on the right. More space for tab labels, familiar settings UI pattern.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="C" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding:16px;background:#f9f6f0;border-bottom:1px solid #e6dbc4">
+      <!-- Option C: Scrollable sections with anchors -->
+      <div style="height:130px;overflow:hidden;position:relative">
+        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+          <div style="padding:4px 10px;font-size:10px;font-weight:700;background:#3E5C46;color:#fff;border-radius:999px">Profil Toko</div>
+          <div style="padding:4px 10px;font-size:10px;font-weight:600;background:#e6dbc4;color:#6f6353;border-radius:999px">Pembayaran</div>
+          <div style="padding:4px 10px;font-size:10px;font-weight:600;background:#e6dbc4;color:#6f6353;border-radius:999px">Kategori</div>
+          <div style="padding:4px 10px;font-size:10px;font-weight:600;background:#e6dbc4;color:#6f6353;border-radius:999px">Add-on</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:10px;border:1px solid #e6dbc4;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:700;color:#3E5C46;margin-bottom:6px">PROFIL TOKO</div>
+          <div style="height:7px;background:#e6dbc4;border-radius:4px;margin-bottom:4px;width:80%"></div>
+          <div style="height:7px;background:#e6dbc4;border-radius:4px;width:60%"></div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:10px;border:1px solid #e6dbc4">
+          <div style="font-size:10px;font-weight:700;color:#3E5C46;margin-bottom:6px">PEMBAYARAN</div>
+          <div style="height:7px;background:#e6dbc4;border-radius:4px;width:70%"></div>
+        </div>
+        <div style="position:absolute;bottom:0;left:0;right:0;height:40px;background:linear-gradient(transparent,#f9f6f0)"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Scrollable with anchor pills</h3>
+      <p>All sections stacked vertically (like now), with quick-jump pills at the top. Familiar but gets long.</p>
+    </div>
+  </div>
+
+</div>

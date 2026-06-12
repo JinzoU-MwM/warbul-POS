@@ -1,0 +1,104 @@
+<h2>Desain Order Cancellation</h2>
+<p class="subtitle">Pembatalan hanya diizinkan saat status <strong>Menunggu Pembayaran</strong>. Setelah dibayar → diblokir.</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;max-width:880px;margin:0 auto">
+
+  <!-- Customer side -->
+  <div>
+    <p class="label" style="margin-bottom:10px">CUSTOMER — StatusView (meja/[table])</p>
+    <div style="background:#F4EDD9;border-radius:14px;padding:16px;font-family:sans-serif;max-width:320px">
+      <!-- mock status card -->
+      <div style="background:#2A4032;border-radius:12px;padding:16px;color:#F4EDD9;margin-bottom:12px">
+        <div style="font-size:11px;opacity:.6;font-weight:700;letter-spacing:.08em">PESANAN KAMU</div>
+        <div style="font-weight:800;font-size:18px;color:#F0BE48;margin-top:2px">WB-042</div>
+        <div style="font-size:12px;opacity:.7;margin-top:2px">Meja 3 · 3 item · Rp 45.000</div>
+        <div style="margin-top:10px;background:rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;font-size:12px">
+          <span style="color:#F97316;font-weight:700">⏳ Menunggu Pembayaran</span>
+        </div>
+      </div>
+
+      <!-- Cancel button — normal state -->
+      <div style="border:1.5px dashed #C9B89A;border-radius:10px;padding:12px;text-align:center">
+        <div style="font-size:11px;color:#8b7f6c;margin-bottom:8px">Salah pesan atau ingin mengubah?</div>
+        <button style="border:1.5px solid #DC2626;background:transparent;color:#DC2626;font-weight:700;font-size:13px;padding:8px 18px;border-radius:9px;cursor:pointer;font-family:sans-serif">
+          Batalkan Pesanan
+        </button>
+      </div>
+
+      <!-- Confirm state (after clicking) -->
+      <div style="margin-top:10px;border:1.5px solid #DC2626;border-radius:10px;padding:12px;background:#FEF2F2;text-align:center">
+        <div style="font-size:12px;font-weight:600;color:#991B1B;margin-bottom:8px">Yakin ingin membatalkan?</div>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button style="border:1.5px solid #ccc;background:#fff;color:#555;font-weight:600;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:sans-serif">Tidak</button>
+          <button style="border:none;background:#DC2626;color:#fff;font-weight:700;font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:sans-serif">Ya, Batalkan</button>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:#9CA3AF;text-align:center;margin-top:8px">Setelah dibatalkan kamu kembali ke menu</div>
+    </div>
+    <div class="section" style="margin-top:14px">
+      <p>Tombol <strong>Batalkan Pesanan</strong> hanya muncul saat status <code>Menunggu Pembayaran</code>. Klik → konfirmasi inline (tanpa modal). Konfirmasi → <code>PATCH /api/orders/:id { status: "Dibatalkan" }</code> → redirect ke menu (<code>onMenu()</code>).</p>
+    </div>
+  </div>
+
+  <!-- Cashier/Owner side -->
+  <div>
+    <p class="label" style="margin-bottom:10px">KASIR &amp; OWNER — OrderDetail</p>
+    <div style="background:#fff;border:1px solid #E6DBC4;border-radius:14px;padding:16px;font-family:sans-serif;max-width:320px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-weight:800;font-size:16px">WB-042</div>
+          <div style="font-size:12px;color:#8b7f6c">Meja 3 · Menunggu Pembayaran</div>
+        </div>
+        <!-- Cancel button in header -->
+        <button style="border:1.5px solid #DC2626;background:transparent;color:#DC2626;font-weight:700;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;font-family:sans-serif;display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Batalkan
+        </button>
+      </div>
+
+      <!-- items mock -->
+      <div style="border:1px solid #F3F4F6;border-radius:10px;padding:10px;margin-bottom:12px">
+        <div style="font-size:12.5px;color:#374151;margin-bottom:6px">1× Kopi Susu · Rp 25.000</div>
+        <div style="font-size:12.5px;color:#374151">2× Es Teh · Rp 20.000</div>
+      </div>
+
+      <!-- Blocked state: already paid -->
+      <div style="border-top:1px dashed #E6DBC4;padding-top:12px">
+        <div style="font-size:11px;color:#9CA3AF;font-weight:600;margin-bottom:6px">JIKA SUDAH DIBAYAR:</div>
+        <button disabled style="border:1.5px solid #E6DBC4;background:#F9F9F9;color:#C4B9A8;font-weight:700;font-size:12px;padding:6px 12px;border-radius:8px;cursor:not-allowed;font-family:sans-serif;display:flex;align-items:center;gap:5px">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Batalkan (terkunci)
+        </button>
+        <div style="font-size:10.5px;color:#9CA3AF;margin-top:5px">Pesanan sudah dibayar. Refund dilakukan manual oleh kasir.</div>
+      </div>
+    </div>
+    <div class="section" style="margin-top:14px">
+      <p>Tombol <strong>Batalkan</strong> di header OrderDetail — tampil merah saat <code>Menunggu Pembayaran</code>, disabled + terkunci saat sudah dibayar/diproses/selesai. Owner menggunakan view Pesanan yang sama, sehingga perilakunya identik.</p>
+    </div>
+  </div>
+
+</div>
+
+<div class="section" style="max-width:880px;margin:20px auto 0;background:#F9FAFB;border-radius:12px;padding:16px">
+  <h3 style="margin:0 0 8px">Perubahan teknis</h3>
+  <ul style="margin:0;padding-left:18px;font-size:13.5px;line-height:1.8;color:#374151">
+    <li><code>ORDER_STATUS.CANCELLED = "Dibatalkan"</code> ditambahkan ke <code>types.ts</code></li>
+    <li>API <code>PATCH /api/orders/[id]</code> menolak cancellation jika status sudah bukan <code>Menunggu Pembayaran</code> (HTTP 409)</li>
+    <li><code>StatusPill</code> mendapat case baru untuk <code>Dibatalkan</code> (warna merah/abu)</li>
+    <li>Filter <strong>Aktif</strong> di OrdersView mengecualikan <code>Dibatalkan</code> — order yang dibatalkan tidak muncul di list aktif</li>
+    <li>Customer: konfirmasi inline (no modal), lalu redirect ke menu via <code>onMenu()</code></li>
+  </ul>
+</div>
+
+<div style="text-align:center;margin-top:24px">
+  <div class="options" style="display:inline-flex;gap:12px">
+    <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+      <div class="letter">✓</div>
+      <div class="content"><h3>Approve</h3><p>Lanjut tulis spec</p></div>
+    </div>
+    <div class="option" data-choice="revise" onclick="toggleSelect(this)">
+      <div class="letter">↺</div>
+      <div class="content"><h3>Revisi</h3><p>Ada yang perlu diubah</p></div>
+    </div>
+  </div>
+</div>

@@ -4,7 +4,8 @@
 import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import type { Product } from "@/lib/types";
-import { CATS, rupiah } from "@/lib/constants";
+import { rupiah } from "@/lib/constants";
+import { useCategories } from "@/lib/use-categories";
 import { getMenu, updateProduct, deleteProduct } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
 import { FoodTile, Switch, Icons, RecipeEditor } from "@/components";
@@ -15,6 +16,7 @@ export interface MenuAdminViewProps {
 }
 
 export function MenuAdminView(_props: MenuAdminViewProps = {}): JSX.Element {
+  const cats = useCategories();
   const [menu, setMenu] = useState<Product[]>([]);
   const [edit, setEdit] = useState<MenuDraft | null>(null);
   const [del, setDel] = useState<Product | null>(null);
@@ -70,7 +72,7 @@ export function MenuAdminView(_props: MenuAdminViewProps = {}): JSX.Element {
         </div>
         <button
           type="button"
-          onClick={() => setEdit({ name: "", price: undefined, cat: "Kopi", available: true })}
+          onClick={() => setEdit({ name: "", price: undefined, cat: cats[0] ?? "", available: true })}
           className="btn btn-green"
           style={{ padding: "12px 18px", borderRadius: 13, display: "flex", alignItems: "center", gap: 8 }}
         >
@@ -80,7 +82,7 @@ export function MenuAdminView(_props: MenuAdminViewProps = {}): JSX.Element {
       </header>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
-        {CATS.map((c) => {
+        {cats.map((c) => {
           const items = menu.filter((m) => m.cat === c);
           if (!items.length) return null;
           return (

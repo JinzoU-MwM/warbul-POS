@@ -10,10 +10,8 @@ import { SettingsView } from "./SettingsView";
 import { OrdersView } from "../pos/OrdersView";
 import { MenuAdminView } from "../pos/MenuAdminView";
 import { IngredientsView } from "../pos/IngredientsView";
-import { TablesView } from "./TablesView";
-import { ModifierAdminView } from "./ModifierAdminView";
 
-export type OwnerView = "overview" | "report" | "orders" | "menu" | "stock" | "addons" | "tables" | "settings";
+export type OwnerView = "overview" | "report" | "orders" | "menu" | "stock" | "settings";
 
 export interface OwnerUser {
   name: string;
@@ -32,8 +30,6 @@ const NAV: NavItem[] = [
   { id: "orders", label: "Pesanan", icon: "orders" },
   { id: "menu", label: "Manajemen Menu", icon: "menu" },
   { id: "stock", label: "Bahan Baku", icon: "bag" },
-  { id: "addons", label: "Add-on & Varian", icon: "register" },
-  { id: "tables", label: "QR Meja", icon: "qr" },
   { id: "settings", label: "Pengaturan", icon: "gear" },
 ];
 
@@ -136,8 +132,6 @@ export function OwnerApp({ user }: { user: OwnerUser }) {
         {view === "orders" && <OrdersView cashierName={user.name} />}
         {view === "menu" && <MenuAdminView />}
         {view === "stock" && <IngredientsView />}
-        {view === "addons" && <ModifierAdminView />}
-        {view === "tables" && <TablesView />}
         {view === "settings" && <SettingsView />}
       </main>
     </div>

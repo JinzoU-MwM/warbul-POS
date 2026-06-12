@@ -1,6 +1,6 @@
 // Shared domain types for the Warbul system. Used on both server and client.
 
-export type Category = "Kopi" | "Non-Kopi" | "Makanan" | "Snack";
+export type Category = string;
 export type Glyph = "cup" | "bowl" | "fries";
 
 export const UNLIMITED_STOCK = 99999; // products with no recipe are unlimited

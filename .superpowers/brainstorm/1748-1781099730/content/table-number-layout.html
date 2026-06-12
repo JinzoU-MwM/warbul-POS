@@ -1,0 +1,94 @@
+<h2>Nomor Meja — Pilih Pendekatan</h2>
+<p class="subtitle">Klien minta nomor meja jauh lebih besar & terlihat di malam hari. Mana yang paling cocok?</p>
+
+<div class="cards" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:0 auto">
+
+  <!-- Option A: Hero number at top -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)" style="cursor:pointer">
+    <div class="card-image" style="background:#1a2e24;padding:10px;display:flex;justify-content:center">
+      <div style="width:160px;background:#2A4032;border-radius:14px;padding:14px 12px;text-align:center;font-family:sans-serif;color:#F4EDD9;position:relative;overflow:hidden">
+        <!-- bg beans -->
+        <div style="position:absolute;right:-8px;top:-8px;width:60px;height:60px;border-radius:50%;background:#F0BE48;opacity:.08"></div>
+        <!-- logo row -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:6px">
+          <div style="width:18px;height:18px;border-radius:50%;background:#F0BE48;opacity:.9"></div>
+          <span style="font-weight:800;color:#F0BE48;font-size:11px">Warbul</span>
+        </div>
+        <!-- HERO NUMBER -->
+        <div style="font-size:76px;font-weight:900;color:#F0BE48;line-height:1;letter-spacing:-2px;margin:4px 0">07</div>
+        <div style="font-size:9px;font-weight:700;opacity:.65;letter-spacing:.1em;margin-bottom:8px">NOMOR MEJA</div>
+        <!-- QR placeholder -->
+        <div style="background:#fff;border-radius:10px;padding:8px;width:max-content;margin:0 auto">
+          <div style="width:80px;height:80px;background:repeating-linear-gradient(45deg,#ccc 0,#ccc 2px,#fff 2px,#fff 6px)"></div>
+        </div>
+        <div style="font-size:8px;opacity:.7;margin-top:6px">Scan untuk melihat menu</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A — Hero di Atas</h3>
+      <p>Nomor meja jadi elemen pertama yang dilihat. Ukuran 76px, mencolok dari jauh.</p>
+    </div>
+  </div>
+
+  <!-- Option B: Big badge at bottom (same layout, enlarged) -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)" style="cursor:pointer">
+    <div class="card-image" style="background:#1a2e24;padding:10px;display:flex;justify-content:center">
+      <div style="width:160px;background:#2A4032;border-radius:14px;padding:14px 12px;text-align:center;font-family:sans-serif;color:#F4EDD9;position:relative;overflow:hidden">
+        <div style="position:absolute;right:-8px;top:-8px;width:60px;height:60px;border-radius:50%;background:#F0BE48;opacity:.08"></div>
+        <!-- logo row -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:6px">
+          <div style="width:18px;height:18px;border-radius:50%;background:#F0BE48;opacity:.9"></div>
+          <span style="font-weight:800;color:#F0BE48;font-size:11px">Warbul</span>
+        </div>
+        <!-- scan heading -->
+        <div style="font-weight:800;font-size:13px;color:#F0BE48;margin-bottom:2px">Scan &amp; Pesan</div>
+        <div style="font-size:8px;opacity:.75;margin-bottom:8px">Pindai QR dengan kamera HP</div>
+        <!-- QR -->
+        <div style="background:#fff;border-radius:10px;padding:8px;width:max-content;margin:0 auto">
+          <div style="width:80px;height:80px;background:repeating-linear-gradient(45deg,#ccc 0,#ccc 2px,#fff 2px,#fff 6px)"></div>
+        </div>
+        <!-- BIG BADGE -->
+        <div style="background:#F0BE48;color:#3A2618;border-radius:12px;padding:8px 14px;margin-top:10px;display:inline-block">
+          <div style="font-size:8px;font-weight:700;opacity:.6;letter-spacing:.08em">KAMU DI</div>
+          <div style="font-size:42px;font-weight:900;line-height:1;letter-spacing:-1px">07</div>
+          <div style="font-size:9px;font-weight:700">Meja</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B — Badge Besar di Bawah</h3>
+      <p>Layout sama, tapi badge nomor meja diperbesar drastis. Angka 42px dalam kotak emas.</p>
+    </div>
+  </div>
+
+  <!-- Option C: Number bookends (top & bottom) -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)" style="cursor:pointer">
+    <div class="card-image" style="background:#1a2e24;padding:10px;display:flex;justify-content:center">
+      <div style="width:160px;background:#2A4032;border-radius:14px;padding:12px;text-align:center;font-family:sans-serif;color:#F4EDD9;position:relative;overflow:hidden">
+        <div style="position:absolute;right:-8px;top:-8px;width:60px;height:60px;border-radius:50%;background:#F0BE48;opacity:.08"></div>
+        <!-- TOP number band -->
+        <div style="background:#F0BE48;color:#3A2618;border-radius:9px;padding:4px 0;margin-bottom:8px">
+          <div style="font-size:9px;font-weight:700;opacity:.55;letter-spacing:.1em">MEJA</div>
+          <div style="font-size:54px;font-weight:900;line-height:1;letter-spacing:-1px">07</div>
+        </div>
+        <!-- logo + scan -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-bottom:4px">
+          <div style="width:14px;height:14px;border-radius:50%;background:#F0BE48;opacity:.9"></div>
+          <span style="font-weight:800;color:#F0BE48;font-size:10px">Warbul</span>
+        </div>
+        <!-- QR -->
+        <div style="background:#fff;border-radius:10px;padding:7px;width:max-content;margin:4px auto">
+          <div style="width:70px;height:70px;background:repeating-linear-gradient(45deg,#ccc 0,#ccc 2px,#fff 2px,#fff 6px)"></div>
+        </div>
+        <div style="font-size:8px;opacity:.7;margin-top:4px">Scan untuk melihat menu</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C — Band Atas Full-Width</h3>
+      <p>Pita emas selebar kartu di bagian atas. Nomor 54px, kontras tinggi, terlihat dari segala sudut.</p>
+    </div>
+  </div>
+
+</div>
+
+<p class="subtitle" style="text-align:center;margin-top:20px">Klik salah satu untuk memilih, atau sampaikan pendapat di terminal.</p>

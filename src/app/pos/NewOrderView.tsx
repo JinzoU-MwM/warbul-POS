@@ -4,7 +4,8 @@
 import { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
 import type { OrderMethod, Product, Selection } from "@/lib/types";
-import { ORDER_STATUS, CATS, rupiah, SERVICE_FEE } from "@/lib/constants";
+import { ORDER_STATUS, rupiah, SERVICE_FEE } from "@/lib/constants";
+import { useCategories } from "@/lib/use-categories";
 import { computeTotals } from "@/lib/pricing";
 import { createOrder, getMenu, getConfig } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
@@ -32,9 +33,10 @@ const PAY_DETAIL: Record<PayLabel, string> = {
 };
 
 export function NewOrderView({ cashierName, onGoToOrders }: NewOrderViewProps): JSX.Element {
+  const availCats = useCategories();
   const [menu, setMenu] = useState<Product[]>([]);
   const [cart, setCart] = useState<Cart>({});
-  const [cat, setCat] = useState<string>(CATS[0]);
+  const [cat, setCat] = useState<string>("");
   const [q, setQ] = useState("");
   const [takeaway, setTakeaway] = useState(false);
   const [tableNo, setTableNo] = useState(1);
@@ -44,6 +46,8 @@ export function NewOrderView({ cashierName, onGoToOrders }: NewOrderViewProps): 
   const [submitting, setSubmitting] = useState(false);
   const [serviceFee, setServiceFee] = useState(SERVICE_FEE);
   const { modGroupsFor, modSummary, unitPrice } = useModifiers();
+
+  useEffect(() => { if (!cat && availCats.length) setCat(availCats[0]); }, [availCats]);
 
   const load = () => { getMenu().then(setMenu).catch(() => {}); };
   const loadConfig = () => { getConfig().then((c) => setServiceFee(c.serviceFee)).catch(() => {}); };
@@ -198,7 +202,7 @@ export function NewOrderView({ cashierName, onGoToOrders }: NewOrderViewProps): 
 
           {!q && (
             <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "8px 24px 6px" }}>
-              {CATS.map((c) => {
+              {availCats.map((c) => {
                 const on = cat === c;
                 return (
                   <button

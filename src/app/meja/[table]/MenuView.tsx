@@ -3,7 +3,8 @@ import { useState } from "react";
 import type { JSX } from "react";
 import type { Product } from "@/lib/types";
 import { FoodTile, Icons } from "@/components";
-import { CATS, rupiah } from "@/lib/constants";
+import { rupiah } from "@/lib/constants";
+import { useCategories } from "@/lib/use-categories";
 import { isOrderable, pad2 } from "./shared";
 
 interface MenuViewProps {
@@ -33,7 +34,8 @@ function StockBadge({ item }: { item: Product }): JSX.Element | null {
 export default function MenuView({ table, menu, cartCount, subtotal, loading, error, onRetry, onOpen, onCart }: MenuViewProps): JSX.Element {
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("Semua");
-  const cats = ["Semua", ...CATS];
+  const fetchedCats = useCategories();
+  const cats = ["Semua", ...fetchedCats];
 
   let list = menu.filter((m) => cat === "Semua" || m.cat === cat);
   if (q) list = list.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()));

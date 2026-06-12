@@ -4,7 +4,7 @@
 import "server-only";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
-import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes } from "@/db/schema";
+import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories } from "@/db/schema";
 import { computeTotals } from "./pricing";
 import { applyPromo } from "./promos";
 import { unitPrice, modSummary, modGroupsFor, DEFAULT_MODIFIER_GROUPS } from "./modifiers";
@@ -235,8 +235,57 @@ export async function deleteProduct(id: string) {
 }
 
 function genProductId(cat: string): string {
-  const prefix = cat === "Kopi" ? "k" : cat === "Non-Kopi" ? "n" : cat === "Makanan" ? "m" : "s";
+  const prefix = cat.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 3) || "cat";
   return prefix + Date.now().toString(36);
+}
+
+/* ─────────────────────────── categories ─────────────────────────── */
+
+export interface CategoryRow { id: string; name: string; position: number; }
+
+const SEED_CATS: CategoryRow[] = [
+  { id: "cat_01", name: "Kopi", position: 1 },
+  { id: "cat_02", name: "Non-Kopi", position: 2 },
+  { id: "cat_03", name: "Makanan", position: 3 },
+  { id: "cat_04", name: "Snack", position: 4 },
+];
+
+export async function getCategories(): Promise<CategoryRow[]> {
+  const rows = await db.select().from(categories).orderBy(categories.position);
+  if (!rows.length) return SEED_CATS;
+  return rows.map((r) => ({ id: r.id, name: r.name, position: r.position }));
+}
+
+export async function createCategory(name: string): Promise<CategoryRow> {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 40) throw new Error("Nama kategori tidak valid (maks 40 karakter)");
+  const existing = await db.select().from(categories);
+  if (existing.some((r) => r.name.toLowerCase() === trimmed.toLowerCase())) throw new Error("Kategori sudah ada");
+  const maxPos = existing.reduce((m, r) => Math.max(m, r.position), 0);
+  const id = "cat_" + Date.now().toString(36);
+  await db.insert(categories).values({ id, name: trimmed, position: maxPos + 1 });
+  return { id, name: trimmed, position: maxPos + 1 };
+}
+
+export async function renameCategory(id: string, newName: string): Promise<void> {
+  const trimmed = newName.trim();
+  if (!trimmed || trimmed.length > 40) throw new Error("Nama kategori tidak valid (maks 40 karakter)");
+  const [cat] = await db.select().from(categories).where(eq(categories.id, id));
+  if (!cat) throw new Error("Kategori tidak ditemukan");
+  const others = await db.select().from(categories);
+  if (others.some((r) => r.id !== id && r.name.toLowerCase() === trimmed.toLowerCase())) throw new Error("Nama kategori sudah digunakan");
+  const oldName = cat.name;
+  await db.update(products).set({ cat: trimmed }).where(eq(products.cat, oldName));
+  await db.update(categories).set({ name: trimmed }).where(eq(categories.id, id));
+  emitChange("menu");
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+  const [cat] = await db.select().from(categories).where(eq(categories.id, id));
+  if (!cat) throw new Error("Kategori tidak ditemukan");
+  const prods = await db.select().from(products).where(eq(products.cat, cat.name));
+  if (prods.length > 0) throw new Error(`Ada ${prods.length} produk dalam kategori ini. Pindahkan atau hapus produk terlebih dahulu.`);
+  await db.delete(categories).where(eq(categories.id, id));
 }
 
 /* ─────────────────────────── orders ─────────────────────────── */

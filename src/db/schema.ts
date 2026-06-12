@@ -138,6 +138,12 @@ export const settings = sqliteTable("settings", {
   data: text("data", { mode: "json" }).notNull(),
 });
 
+export const categories = sqliteTable("categories", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  position: integer("position").notNull(),
+});
+
 // Modifier / add-on groups (e.g. Ukuran, Tambahan) assigned to product categories.
 export const modifierGroups = sqliteTable("modifier_groups", {
   id: text("id").primaryKey(),

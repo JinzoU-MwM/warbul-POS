@@ -1,10 +1,6 @@
-import type { Category } from "./types";
-
 export { ORDER_STATUS } from "./types";
 
 export const SERVICE_FEE = 2000;
-
-export const CATS: Category[] = ["Kopi", "Non-Kopi", "Makanan", "Snack"];
 
 /** Indonesian rupiah formatter — "Rp18.000". */
 export function rupiah(n: number | null | undefined): string {

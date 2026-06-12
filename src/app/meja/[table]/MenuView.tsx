@@ -4,7 +4,7 @@ import type { JSX } from "react";
 import type { Product } from "@/lib/types";
 import { FoodTile, Icons } from "@/components";
 import { rupiah } from "@/lib/constants";
-import { useCategories } from "@/lib/use-categories";
+import { useCategories, mergeProductCategories, productInCategory } from "@/lib/use-categories";
 import { isOrderable, pad2 } from "./shared";
 
 interface MenuViewProps {
@@ -35,9 +35,9 @@ export default function MenuView({ table, menu, cartCount, subtotal, loading, er
   const [q, setQ] = useState("");
   const [cat, setCat] = useState<string>("Semua");
   const fetchedCats = useCategories();
-  const cats = ["Semua", ...fetchedCats];
+  const cats = ["Semua", ...mergeProductCategories(fetchedCats, menu)];
 
-  let list = menu.filter((m) => cat === "Semua" || m.cat === cat);
+  let list = menu.filter((m) => cat === "Semua" || productInCategory(m, cat));
   if (q) list = list.filter((m) => m.name.toLowerCase().includes(q.toLowerCase()));
 
   // loading / error / empty feedback (instead of a silent blank grid)

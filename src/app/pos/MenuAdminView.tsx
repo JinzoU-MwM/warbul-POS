@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import type { JSX } from "react";
 import type { Product } from "@/lib/types";
 import { rupiah } from "@/lib/constants";
-import { useCategories } from "@/lib/use-categories";
+import { useCategories, mergeProductCategories, productInCategory } from "@/lib/use-categories";
 import { getMenu, updateProduct, deleteProduct } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
 import { FoodTile, Switch, Icons, RecipeEditor } from "@/components";
@@ -82,8 +82,8 @@ export function MenuAdminView(_props: MenuAdminViewProps = {}): JSX.Element {
       </header>
 
       <div style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
-        {cats.map((c) => {
-          const items = menu.filter((m) => m.cat === c);
+        {mergeProductCategories(cats, menu).map((c) => {
+          const items = menu.filter((m) => productInCategory(m, c));
           if (!items.length) return null;
           return (
             <div key={c} style={{ marginBottom: 30 }}>

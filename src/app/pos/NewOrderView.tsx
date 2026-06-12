@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { JSX } from "react";
 import type { OrderMethod, Product, Selection } from "@/lib/types";
 import { ORDER_STATUS, rupiah, SERVICE_FEE } from "@/lib/constants";
-import { useCategories } from "@/lib/use-categories";
+import { useCategories, mergeProductCategories, productInCategory } from "@/lib/use-categories";
 import { computeTotals } from "@/lib/pricing";
 import { createOrder, getMenu, getConfig } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
@@ -47,7 +47,8 @@ export function NewOrderView({ cashierName, onGoToOrders }: NewOrderViewProps): 
   const [serviceFee, setServiceFee] = useState(SERVICE_FEE);
   const { modGroupsFor, modSummary, unitPrice } = useModifiers();
 
-  useEffect(() => { if (!cat && availCats.length) setCat(availCats[0]); }, [availCats]);
+  const tabCats = useMemo(() => mergeProductCategories(availCats, menu), [availCats, menu]);
+  useEffect(() => { if (!cat && tabCats.length) setCat(tabCats[0]); }, [cat, tabCats]);
 
   const load = () => { getMenu().then(setMenu).catch(() => {}); };
   const loadConfig = () => { getConfig().then((c) => setServiceFee(c.serviceFee)).catch(() => {}); };
@@ -60,7 +61,7 @@ export function NewOrderView({ cashierName, onGoToOrders }: NewOrderViewProps): 
       const needle = q.toLowerCase();
       return menu.filter((m) => isOrderable(m) && m.name.toLowerCase().includes(needle));
     }
-    return menu.filter((m) => m.cat === cat && isOrderable(m));
+    return menu.filter((m) => productInCategory(m, cat) && isOrderable(m));
   }, [menu, q, cat]);
 
   const lines = useMemo(
@@ -202,7 +203,7 @@ export function NewOrderView({ cashierName, onGoToOrders }: NewOrderViewProps): 
 
           {!q && (
             <div style={{ display: "flex", gap: 8, overflowX: "auto", padding: "8px 24px 6px" }}>
-              {availCats.map((c) => {
+              {tabCats.map((c) => {
                 const on = cat === c;
                 return (
                   <button

@@ -176,6 +176,26 @@ export function isAndroid(): boolean {
   return typeof navigator !== "undefined" && /android/i.test(navigator.userAgent);
 }
 
+// Launch an intent: URL without navigating the current page away. Using
+// window.location.href on an intent: URL makes Chrome perform a top-level
+// navigation, so on returning from RawBT the React page is left in a broken
+// state (stuck zoom, modal gone). A throwaway hidden iframe fires the intent
+// while the page stays intact.
+function launchIntent(url: string): void {
+  const frame = document.createElement("iframe");
+  frame.style.display = "none";
+  document.body.appendChild(frame);
+  try {
+    if (frame.contentWindow) frame.contentWindow.location.href = url;
+    else frame.src = url;
+  } catch {
+    // Some Chrome builds block intent: inside an iframe — fall back to a
+    // same-tab open, which still launches the app.
+    window.location.href = url;
+  }
+  setTimeout(() => frame.remove(), 2000);
+}
+
 /**
  * Print a receipt to a Bluetooth ESC/POS printer via RawBT. Returns true if the
  * RawBT intent was triggered. On non-Android (no RawBT) returns false so the
@@ -188,6 +208,6 @@ export function printReceiptViaRawBT(
 ): boolean {
   if (!isAndroid()) return false;
   const bytes = buildReceiptEscPos(order, settings, cashierName);
-  window.location.href = rawbtIntentUrl(bytes);
+  launchIntent(rawbtIntentUrl(bytes));
   return true;
 }

@@ -1,11 +1,10 @@
 ext {
     minSdkVersion = 24
     compileSdkVersion = 36
-    // targetSdk 30: run in pre-Android-12 compat so the legacy BLUETOOTH /
-    // BLUETOOTH_ADMIN permissions are granted at install (no runtime prompt) —
-    // cordova-plugin-bluetooth-serial (0.4.7) predates the Android 12 runtime
-    // Bluetooth permissions. This APK is for internal sideload, not Play Store.
-    targetSdkVersion = 30
+    // targetSdk 36: modern permission model. BLUETOOTH_CONNECT / BLUETOOTH_SCAN
+    // are requested at runtime (cordova-plugin-android-permissions) before
+    // listing/connecting to the printer — see src/lib/escpos.ts.
+    targetSdkVersion = 36
     androidxActivityVersion = '1.11.0'
     androidxAppCompatVersion = '1.7.1'
     androidxCoordinatorLayoutVersion = '1.3.0'

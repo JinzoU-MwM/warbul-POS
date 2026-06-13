@@ -250,6 +250,32 @@ function bt(): BluetoothSerial {
   if (!w.bluetoothSerial) throw new Error("Plugin Bluetooth tidak tersedia (buka via aplikasi).");
   return w.bluetoothSerial;
 }
+
+// cordova-plugin-android-permissions: request the Android 12+ runtime Bluetooth
+// permissions before any getBondedDevices()/connect() (which throw without
+// BLUETOOTH_CONNECT). No-op on older Android / when the plugin is absent.
+interface AndroidPermissions {
+  requestPermissions(
+    perms: string[],
+    success: (status: { hasPermission: boolean }) => void,
+    error: (e: unknown) => void,
+  ): void;
+}
+function androidPermissions(): AndroidPermissions | null {
+  const w = window as unknown as { cordova?: { plugins?: { permissions?: AndroidPermissions } } };
+  return w.cordova?.plugins?.permissions ?? null;
+}
+async function ensureBtPermissions(): Promise<void> {
+  const p = androidPermissions();
+  if (!p) return;
+  await new Promise<void>((resolve) => {
+    p.requestPermissions(
+      ["android.permission.BLUETOOTH_CONNECT", "android.permission.BLUETOOTH_SCAN"],
+      () => resolve(),
+      () => resolve(),
+    );
+  });
+}
 function promisify<T>(fn: (s: (r: T) => void, f: (e: unknown) => void) => void): Promise<T> {
   return new Promise<T>((resolve, reject) => fn(resolve, (e) => reject(asError(e))));
 }
@@ -266,7 +292,8 @@ export function setPrinterAddr(addr: string): void {
 }
 
 /** List Bluetooth devices paired with the phone (native app only). */
-export function listPairedPrinters(): Promise<BtDevice[]> {
+export async function listPairedPrinters(): Promise<BtDevice[]> {
+  await ensureBtPermissions();
   return promisify<BtDevice[]>((s, f) => bt().list(s, f));
 }
 
@@ -281,6 +308,7 @@ export async function printReceiptNative(
 ): Promise<void> {
   const addr = getPrinterAddr();
   if (!addr) throw new NoPrinterError();
+  await ensureBtPermissions();
   const b = bt();
   const bytes = buildReceiptEscPos(order, settings, cashierName);
   // Prefer a secure SPP connection; fall back to insecure (many cheap printers).

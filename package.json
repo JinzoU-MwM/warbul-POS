@@ -19,6 +19,7 @@
     "@libsql/client": "^0.17.3",
     "@vercel/analytics": "^2.0.1",
     "better-auth": "^1.6.15",
+    "cordova-plugin-android-permissions": "^1.1.5",
     "cordova-plugin-bluetooth-serial": "^0.4.7",
     "drizzle-orm": "^0.45.2",
     "next": "16.2.9",

@@ -1,9 +1,15 @@
 "use client";
 // Thermal receipt content (#rcpt is required — globals.css scopes @media print to it)
 // plus a modal wrapper with Tutup / Cetak Struk actions.
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import type { Order, StoreSettings } from "@/lib/types";
 import { rupiah } from "@/lib/constants";
+import {
+  printReceiptViaRawBT,
+  getPaperWidth,
+  setPaperWidth,
+  type PaperWidth,
+} from "@/lib/escpos";
 import { Bean } from "./glyphs";
 import { Icons } from "./icons";
 
@@ -131,6 +137,29 @@ export interface ReceiptModalProps extends ReceiptProps {
 }
 
 export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptModalProps): JSX.Element {
+  // Cetak Struk: on Android route raw ESC/POS to a Bluetooth printer via RawBT;
+  // otherwise (desktop/iOS) fall back to the browser print dialog.
+  const handlePrint = () => {
+    if (!printReceiptViaRawBT(order, settings, cashierName)) window.print();
+  };
+  // Paper width is per-device (persisted), so a cashier picks it once.
+  const [paper, setPaper] = useState<PaperWidth>(getPaperWidth());
+  const changePaper = (w: PaperWidth) => {
+    setPaper(w);
+    setPaperWidth(w);
+  };
+  const paperBtn = (w: PaperWidth): React.CSSProperties => ({
+    flex: 1,
+    borderRadius: 9,
+    padding: "7px 0",
+    fontSize: 12.5,
+    fontWeight: 700,
+    cursor: "pointer",
+    fontFamily: "inherit",
+    border: "1.5px solid " + (paper === w ? "var(--green-900)" : "var(--line)"),
+    background: paper === w ? "var(--green-900)" : "#fff",
+    color: paper === w ? "#fff" : "var(--ink)",
+  });
   return (
     <div
       onClick={onClose}
@@ -156,7 +185,21 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
         }}
       >
         <Receipt order={order} settings={settings} cashierName={cashierName} />
-        <div className="rcpt-actions" style={{ display: "flex", gap: 10, marginTop: 12 }}>
+        <div
+          className="rcpt-paper"
+          style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}
+        >
+          <span style={{ fontSize: 12, color: "#8b7f6c", whiteSpace: "nowrap" }}>Lebar kertas</span>
+          <div style={{ display: "flex", gap: 6, flex: 1 }}>
+            <button type="button" onClick={() => changePaper(58)} style={paperBtn(58)}>
+              58mm
+            </button>
+            <button type="button" onClick={() => changePaper(80)} style={paperBtn(80)}>
+              80mm
+            </button>
+          </div>
+        </div>
+        <div className="rcpt-actions" style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <button
             type="button"
             onClick={onClose}
@@ -177,7 +220,7 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
           </button>
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={handlePrint}
             className="btn btn-green"
             style={{
               flex: 1.4,

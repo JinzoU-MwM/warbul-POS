@@ -5,8 +5,10 @@
 import { useEffect, useState, type JSX } from "react";
 import { isNativeApp } from "@/lib/escpos";
 
-const APK_URL =
-  "https://github.com/JinzoU-MwM/warbul-POS/releases/latest/download/warbul.apk";
+// Served from the app's own domain (Vercel CDN) — far faster in Indonesia than
+// GitHub Releases. The file lives at public/warbul.apk and is refreshed by the
+// Android CI on each `app-v*` tag.
+const APK_URL = "/warbul.apk";
 
 export function DownloadAppBanner(): JSX.Element | null {
   const [show, setShow] = useState(false);

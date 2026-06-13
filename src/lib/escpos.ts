@@ -154,22 +154,21 @@ export function buildReceiptEscPos(
   return p.bytes();
 }
 
-function bytesToBase64(bytes: Uint8Array): string {
-  let bin = "";
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    bin += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(bin);
-}
-
-/** Build the RawBT intent URL for a set of raw ESC/POS bytes. */
+/**
+ * Build the RawBT intent URL for raw ESC/POS bytes.
+ *
+ * RawBT prints the data carried by the `rawbt:` scheme. We percent-encode EVERY
+ * byte (%XX) so arbitrary ESC/POS control bytes — including 0x23 '#' which would
+ * otherwise terminate the intent fragment — survive intact. (The older
+ * `intent:base64,…` form is not recognized by current RawBT and merely opens the
+ * app without printing.)
+ */
 export function rawbtIntentUrl(bytes: Uint8Array): string {
-  return (
-    "intent:base64," +
-    bytesToBase64(bytes) +
-    "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;"
-  );
+  let enc = "";
+  for (let i = 0; i < bytes.length; i++) {
+    enc += "%" + bytes[i].toString(16).padStart(2, "0").toUpperCase();
+  }
+  return "intent:" + enc + "#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;";
 }
 
 /** True on Android (RawBT is Android-only). */

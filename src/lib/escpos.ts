@@ -10,6 +10,7 @@
 //   intent:base64,<base64 ESC/POS>#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;
 import type { Order, StoreSettings } from "@/lib/types";
 import { rupiah } from "@/lib/constants";
+import { Capacitor } from "@capacitor/core";
 
 // ---- Paper width setting (per-device, persisted in localStorage) ----
 export type PaperWidth = 58 | 80;
@@ -210,4 +211,88 @@ export function printReceiptViaRawBT(
   const bytes = buildReceiptEscPos(order, settings, cashierName);
   launchIntent(rawbtIntentUrl(bytes));
   return true;
+}
+
+// ---- Native (Capacitor Android app) direct Bluetooth printing ----
+// In the packaged app we talk to the thermal printer directly over Bluetooth
+// Classic (SPP) via cordova-plugin-bluetooth-serial — no RawBT. On the web,
+// isNativeApp() is false and the RawBT path above is used instead.
+
+export type BtDevice = { name?: string; address: string; id?: string };
+
+/** True when running inside the Capacitor Android/iOS app. */
+export function isNativeApp(): boolean {
+  try {
+    return Capacitor.isNativePlatform();
+  } catch {
+    return false;
+  }
+}
+
+/** Thrown when no printer has been chosen yet (caller should show a picker). */
+export class NoPrinterError extends Error {
+  constructor() {
+    super("Belum ada printer dipilih");
+    this.name = "NoPrinterError";
+  }
+}
+
+// Minimal typing for the cordova-plugin-bluetooth-serial global.
+interface BluetoothSerial {
+  list(success: (devices: BtDevice[]) => void, failure: (e: unknown) => void): void;
+  connect(address: string, success: () => void, failure: (e: unknown) => void): void;
+  connectInsecure(address: string, success: () => void, failure: (e: unknown) => void): void;
+  write(data: ArrayBuffer | Uint8Array | string, success: () => void, failure: (e: unknown) => void): void;
+  disconnect(success: () => void, failure: (e: unknown) => void): void;
+}
+function bt(): BluetoothSerial {
+  const w = window as unknown as { bluetoothSerial?: BluetoothSerial };
+  if (!w.bluetoothSerial) throw new Error("Plugin Bluetooth tidak tersedia (buka via aplikasi).");
+  return w.bluetoothSerial;
+}
+function promisify<T>(fn: (s: (r: T) => void, f: (e: unknown) => void) => void): Promise<T> {
+  return new Promise<T>((resolve, reject) => fn(resolve, (e) => reject(asError(e))));
+}
+function asError(e: unknown): Error {
+  return e instanceof Error ? e : new Error(typeof e === "string" ? e : "Bluetooth error");
+}
+
+const ADDR_KEY = "warbul_bt_addr";
+export function getPrinterAddr(): string {
+  return typeof window !== "undefined" ? window.localStorage.getItem(ADDR_KEY) || "" : "";
+}
+export function setPrinterAddr(addr: string): void {
+  if (typeof window !== "undefined") window.localStorage.setItem(ADDR_KEY, addr);
+}
+
+/** List Bluetooth devices paired with the phone (native app only). */
+export function listPairedPrinters(): Promise<BtDevice[]> {
+  return promisify<BtDevice[]>((s, f) => bt().list(s, f));
+}
+
+/**
+ * Print directly to the saved Bluetooth printer (native app). Throws
+ * NoPrinterError when no device is chosen yet.
+ */
+export async function printReceiptNative(
+  order: Order,
+  settings?: StoreSettings | null,
+  cashierName?: string,
+): Promise<void> {
+  const addr = getPrinterAddr();
+  if (!addr) throw new NoPrinterError();
+  const b = bt();
+  const bytes = buildReceiptEscPos(order, settings, cashierName);
+  // Prefer a secure SPP connection; fall back to insecure (many cheap printers).
+  try {
+    await promisify<void>((s, f) => b.connect(addr, s, f));
+  } catch {
+    await promisify<void>((s, f) => b.connectInsecure(addr, s, f));
+  }
+  try {
+    await promisify<void>((s, f) => b.write(bytes, s, f));
+    await new Promise((r) => setTimeout(r, 500)); // let the buffer flush
+  } finally {
+    await promisify<void>((s, f) => b.disconnect(s, f)).catch(() => {});
+  }
 }

@@ -4,6 +4,7 @@ import { getAnalyticsSummary, getSettings, reportCsvUrl } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
 import { rupiah } from "@/lib/constants";
 import { Icons, StatusPill } from "@/components";
+import { DownloadAppBanner } from "@/components/DownloadAppBanner";
 import type { AnalyticsSummary, SummaryRange } from "@/lib/analytics";
 import { AreaChart, Donut, TopMenuBars, CategoryBars } from "./charts";
 import type { JSX } from "react";
@@ -160,6 +161,7 @@ export function OverviewView({ userName }: { userName: string }) {
       </header>
 
       <div className="owner-body" style={{ flex: 1, overflowY: "auto", padding: "22px 28px 40px" }}>
+        <DownloadAppBanner />
         {data && (
           <>
             <KpiCards data={data} />

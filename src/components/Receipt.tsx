@@ -8,7 +8,13 @@ import {
   printReceiptViaRawBT,
   getPaperWidth,
   setPaperWidth,
+  isNativeApp,
+  printReceiptNative,
+  listPairedPrinters,
+  setPrinterAddr,
+  NoPrinterError,
   type PaperWidth,
+  type BtDevice,
 } from "@/lib/escpos";
 import { Bean } from "./glyphs";
 import { Icons } from "./icons";
@@ -137,9 +143,47 @@ export interface ReceiptModalProps extends ReceiptProps {
 }
 
 export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptModalProps): JSX.Element {
-  // Cetak Struk: on Android route raw ESC/POS to a Bluetooth printer via RawBT;
-  // otherwise (desktop/iOS) fall back to the browser print dialog.
+  // Cetak Struk:
+  //  - Native app  -> print directly over Bluetooth (no RawBT); pick printer once.
+  //  - Android web -> RawBT bridge.
+  //  - else        -> browser print dialog (PDF).
+  const [busy, setBusy] = useState(false);
+  const [printErr, setPrintErr] = useState("");
+  const [devices, setDevices] = useState<BtDevice[] | null>(null);
+
+  const nativePrint = async () => {
+    setBusy(true);
+    setPrintErr("");
+    try {
+      await printReceiptNative(order, settings, cashierName);
+      setDevices(null);
+    } catch (e) {
+      if (e instanceof NoPrinterError) {
+        await openPicker();
+      } else {
+        setPrintErr((e as Error).message || "Gagal mencetak");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+  const openPicker = async () => {
+    try {
+      setDevices(await listPairedPrinters());
+    } catch (e) {
+      setPrintErr("Gagal membaca perangkat Bluetooth: " + (e as Error).message);
+    }
+  };
+  const choosePrinter = async (addr: string) => {
+    setPrinterAddr(addr);
+    setDevices(null);
+    await nativePrint();
+  };
   const handlePrint = () => {
+    if (isNativeApp()) {
+      void nativePrint();
+      return;
+    }
     if (!printReceiptViaRawBT(order, settings, cashierName)) window.print();
   };
   // Paper width is per-device (persisted), so a cashier picks it once.
@@ -185,6 +229,80 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
         }}
       >
         <Receipt order={order} settings={settings} cashierName={cashierName} />
+
+        {printErr && (
+          <div
+            style={{
+              marginTop: 10,
+              padding: "9px 12px",
+              borderRadius: 10,
+              background: "#fdecec",
+              color: "#b3261e",
+              fontSize: 12.5,
+            }}
+          >
+            {printErr}
+          </div>
+        )}
+
+        {devices !== null && (
+          <div
+            style={{
+              marginTop: 10,
+              background: "#fff",
+              border: "1.5px solid var(--line)",
+              borderRadius: 12,
+              padding: 10,
+            }}
+          >
+            <div style={{ fontSize: 12.5, fontWeight: 700, marginBottom: 6 }}>Pilih printer</div>
+            {devices.length === 0 ? (
+              <div style={{ fontSize: 12, color: "#8b7f6c" }}>
+                Tidak ada perangkat ter-pair. Pair printer dulu di Setelan Bluetooth HP.
+              </div>
+            ) : (
+              devices.map((d) => (
+                <button
+                  key={d.address}
+                  type="button"
+                  onClick={() => choosePrinter(d.address)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "9px 11px",
+                    marginBottom: 6,
+                    borderRadius: 9,
+                    border: "1px solid var(--line)",
+                    background: "#fff",
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span style={{ fontWeight: 600 }}>{d.name || "Printer"}</span>
+                  <span style={{ color: "#8b7f6c", fontSize: 11 }}> · {d.address}</span>
+                </button>
+              ))
+            )}
+            <button
+              type="button"
+              onClick={() => setDevices(null)}
+              style={{
+                marginTop: 2,
+                fontSize: 12,
+                color: "#8b7f6c",
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Batal
+            </button>
+          </div>
+        )}
+
         <div
           className="rcpt-paper"
           style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}
@@ -221,6 +339,7 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
           <button
             type="button"
             onClick={handlePrint}
+            disabled={busy}
             className="btn btn-green"
             style={{
               flex: 1.4,
@@ -231,9 +350,10 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
               alignItems: "center",
               justifyContent: "center",
               gap: 8,
+              opacity: busy ? 0.7 : 1,
             }}
           >
-            <Icons.printer /> Cetak Struk
+            <Icons.printer /> {busy ? "Mencetak…" : "Cetak Struk"}
           </button>
         </div>
       </div>

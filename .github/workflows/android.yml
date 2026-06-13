@@ -26,6 +26,17 @@ jobs:
 
       - run: npm ci
 
+      # On an app-vN tag, stamp versionCode=N and versionName="app-vN" into the
+      # native build so the in-app update check (/app-version.json vs
+      # App.getInfo().build) can tell installed from latest.
+      - name: Set version from tag
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VC="${GITHUB_REF_NAME#app-v}"
+          sed -i "s/versionCode .*/versionCode ${VC}/" android/app/build.gradle
+          sed -i "s/versionName \".*\"/versionName \"${GITHUB_REF_NAME}\"/" android/app/build.gradle
+          echo "Built android/app/build.gradle:"; grep -E "versionCode|versionName" android/app/build.gradle
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -56,17 +67,20 @@ jobs:
         with:
           files: warbul.apk
 
-      # Refresh the same-origin copy served by Vercel (fast download in ID).
-      - name: Update public/warbul.apk on main
+      # Refresh the same-origin copy served by Vercel (fast download in ID) and
+      # publish the version manifest the in-app update check reads.
+      - name: Update public/warbul.apk + app-version.json on main
         if: startsWith(github.ref, 'refs/tags/')
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin main
           git checkout main
+          VC="${GITHUB_REF_NAME#app-v}"
           cp warbul.apk public/warbul.apk
-          if ! git diff --quiet public/warbul.apk; then
-            git add public/warbul.apk
-            git commit -m "chore(app): refresh public/warbul.apk (${GITHUB_REF_NAME})"
+          printf '{"versionCode":%s,"versionName":"%s","url":"/warbul.apk"}\n' "${VC}" "${GITHUB_REF_NAME}" > public/app-version.json
+          git add public/warbul.apk public/app-version.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(app): refresh APK + version manifest (${GITHUB_REF_NAME})"
             git push origin main
           fi

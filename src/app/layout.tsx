@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Baloo_2, Plus_Jakarta_Sans } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { AppUpdateGate } from "@/components/AppUpdateGate";
 import "./globals.css";
 
 const baloo = Baloo_2({
@@ -29,6 +30,7 @@ export default function RootLayout({
     <html lang="id" className={`${baloo.variable} ${jakarta.variable}`}>
       <body>
         {children}
+        <AppUpdateGate />
         <Analytics />
       </body>
     </html>

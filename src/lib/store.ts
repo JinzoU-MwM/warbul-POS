@@ -2,7 +2,7 @@
 // settings. The server analog of design-reference/warbul.js. Route handlers
 // (Phase 1) build HTTP/validation/auth on top of these functions.
 import "server-only";
-import { and, desc, eq, ne, gte, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, ne, gte, inArray, sql, count, max } from "drizzle-orm";
 import { db } from "@/db";
 import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories, promotions, redemptions } from "@/db/schema";
 import { computeTotals } from "./pricing";
@@ -44,8 +44,8 @@ export async function createModifierGroup(input: {
   name: string; type: ModType; categories: Category[];
 }): Promise<string> {
   const id = modId("g");
-  const count = (await db.select().from(modifierGroups)).length;
-  await db.insert(modifierGroups).values({ id, name: input.name, type: input.type, categories: input.categories, sort: count });
+  const [{ n }] = await db.select({ n: count() }).from(modifierGroups);
+  await db.insert(modifierGroups).values({ id, name: input.name, type: input.type, categories: input.categories, sort: n });
   emitChange("modifiers");
   return id;
 }
@@ -68,9 +68,9 @@ export async function createModifierOption(input: {
   groupId: string; label: string; price: number; isDefault?: boolean;
 }): Promise<string> {
   const id = modId("o");
-  const count = (await db.select().from(modifierOptions).where(eq(modifierOptions.groupId, input.groupId))).length;
+  const [{ n }] = await db.select({ n: count() }).from(modifierOptions).where(eq(modifierOptions.groupId, input.groupId));
   await db.insert(modifierOptions).values({
-    id, groupId: input.groupId, label: input.label, price: input.price, isDefault: input.isDefault ?? false, sort: count,
+    id, groupId: input.groupId, label: input.label, price: input.price, isDefault: input.isDefault ?? false, sort: n,
   });
   emitChange("modifiers");
   return id;
@@ -98,10 +98,10 @@ export async function getIngredients(): Promise<Ingredient[]> {
 
 export async function createIngredient(input: { name: string; unit: string; stock: number; lowThreshold?: number }): Promise<string> {
   const id = modId("i");
-  const count = (await db.select().from(ingredients)).length;
+  const [{ n }] = await db.select({ n: count() }).from(ingredients);
   await db.insert(ingredients).values({
     id, name: input.name, unit: input.unit, stock: Math.max(0, Math.floor(input.stock || 0)),
-    lowThreshold: Math.max(0, Math.floor(input.lowThreshold || 0)), sort: count,
+    lowThreshold: Math.max(0, Math.floor(input.lowThreshold || 0)), sort: n,
   });
   emitChange("menu");
   return id;
@@ -229,8 +229,7 @@ export async function updateProduct(id: string, patch: Partial<Product>) {
 
 export async function createProduct(p: Omit<Product, "id"> & { id?: string }) {
   const id = p.id || genProductId(p.cat);
-  const rows = await db.select().from(products);
-  const sort = rows.length;
+  const [{ n: sort }] = await db.select({ n: count() }).from(products);
   await db.insert(products).values({
     id, name: p.name, price: p.price, cat: p.cat, g: p.g, grad: p.grad,
     tag: p.tag ?? null, available: p.manualAvailable ?? p.available ?? true, desc: p.desc ?? "", sort,
@@ -270,9 +269,11 @@ export async function getCategories(): Promise<CategoryRow[]> {
 export async function createCategory(name: string): Promise<CategoryRow> {
   const trimmed = name.trim();
   if (!trimmed || trimmed.length > 40) throw new Error("Nama kategori tidak valid (maks 40 karakter)");
-  const existing = await db.select().from(categories);
-  if (existing.some((r) => r.name.toLowerCase() === trimmed.toLowerCase())) throw new Error("Kategori sudah ada");
-  const maxPos = existing.reduce((m, r) => Math.max(m, r.position), 0);
+  const [{ n }] = await db.select({ n: count() }).from(categories)
+    .where(sql`lower(${categories.name}) = lower(${trimmed})`);
+  if (n > 0) throw new Error("Kategori sudah ada");
+  const [{ m }] = await db.select({ m: max(categories.position) }).from(categories);
+  const maxPos = m ?? 0;
   const id = "cat_" + Date.now().toString(36);
   await db.insert(categories).values({ id, name: trimmed, position: maxPos + 1 });
   return { id, name: trimmed, position: maxPos + 1 };
@@ -283,8 +284,9 @@ export async function renameCategory(id: string, newName: string): Promise<void>
   if (!trimmed || trimmed.length > 40) throw new Error("Nama kategori tidak valid (maks 40 karakter)");
   const [cat] = await db.select().from(categories).where(eq(categories.id, id));
   if (!cat) throw new Error("Kategori tidak ditemukan");
-  const others = await db.select().from(categories);
-  if (others.some((r) => r.id !== id && r.name.toLowerCase() === trimmed.toLowerCase())) throw new Error("Nama kategori sudah digunakan");
+  const [{ n }] = await db.select({ n: count() }).from(categories)
+    .where(and(sql`lower(${categories.name}) = lower(${trimmed})`, ne(categories.id, id)));
+  if (n > 0) throw new Error("Nama kategori sudah digunakan");
   const oldName = cat.name;
   await db.update(products).set({ cat: trimmed }).where(eq(products.cat, oldName));
   await db.update(categories).set({ name: trimmed }).where(eq(categories.id, id));
@@ -294,8 +296,8 @@ export async function renameCategory(id: string, newName: string): Promise<void>
 export async function deleteCategory(id: string): Promise<void> {
   const [cat] = await db.select().from(categories).where(eq(categories.id, id));
   if (!cat) throw new Error("Kategori tidak ditemukan");
-  const prods = await db.select().from(products).where(eq(products.cat, cat.name));
-  if (prods.length > 0) throw new Error(`Ada ${prods.length} produk dalam kategori ini. Pindahkan atau hapus produk terlebih dahulu.`);
+  const [{ n }] = await db.select({ n: count() }).from(products).where(eq(products.cat, cat.name));
+  if (n > 0) throw new Error(`Ada ${n} produk dalam kategori ini. Pindahkan atau hapus produk terlebih dahulu.`);
   await db.delete(categories).where(eq(categories.id, id));
 }
 

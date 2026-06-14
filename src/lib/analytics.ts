@@ -1,8 +1,8 @@
 // Owner analytics computation helpers + response types. Computed from real data
-// (getOrders() / getMenu()). All divisions are guarded so empty/zero data never
+// (getOrdersSince() / getMenu()). All divisions are guarded so empty/zero data never
 // produces NaN or Infinity.
 import "server-only";
-import { getOrders, getMenu } from "./store";
+import { getOrdersSince, getRecentOrders, getMenu } from "./store";
 import { ORDER_STATUS } from "./constants";
 import type { Order, Product } from "./types";
 
@@ -219,10 +219,17 @@ function buildTrend(orders: Order[], range: SummaryRange, w: WindowDef, now = Da
 }
 
 export async function computeSummary(range: SummaryRange, now = Date.now()): Promise<AnalyticsSummary> {
-  const [all, menu] = await Promise.all([getOrders("all"), getMenu()]);
+  const { current, prev } = summaryWindow(range, now);
+  // Load only the window we report on (prev.start is the earliest point any
+  // stat/trend reaches back to) instead of the entire order history. `recent`
+  // is fetched separately so it stays correct even if the window is empty.
+  const [all, menu, recent] = await Promise.all([
+    getOrdersSince(prev.start),
+    getMenu(),
+    getRecentOrders(8),
+  ]);
   const menuById = new Map<string, Product>(menu.map((p) => [p.id, p]));
 
-  const { current, prev } = summaryWindow(range, now);
   const cur = statsFor(all, current);
   const pre = statsFor(all, prev);
 
@@ -274,8 +281,6 @@ export async function computeSummary(range: SummaryRange, now = Date.now()): Pro
     .map((p) => ({ id: p.id, name: p.name, stock: p.stock }))
     .sort((x, y) => x.stock - y.stock);
 
-  const recent = [...all].sort((a, b) => b.createdAt - a.createdAt).slice(0, 8);
-
   return {
     range,
     revenue: cur.revenue,
@@ -307,8 +312,8 @@ function reportWindow(range: ReportRange, now = Date.now()): { start: number; da
 }
 
 export async function computeReport(range: ReportRange, now = Date.now()): Promise<SalesReport> {
-  const all = await getOrders("all");
   const { start, days } = reportWindow(range, now);
+  const all = await getOrdersSince(start);
 
   const daily: ReportDailyRow[] = [];
   let totalNet = 0;

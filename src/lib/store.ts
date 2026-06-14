@@ -2,7 +2,7 @@
 // settings. The server analog of design-reference/warbul.js. Route handlers
 // (Phase 1) build HTTP/validation/auth on top of these functions.
 import "server-only";
-import { and, desc, eq, ne, inArray } from "drizzle-orm";
+import { and, desc, eq, ne, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories, promotions, redemptions } from "@/db/schema";
 import { computeTotals } from "./pricing";
@@ -345,8 +345,31 @@ export async function getOrders(filter: OrderFilter = "all"): Promise<Order[]> {
   } else {
     rows = await db.select().from(orders).where(eq(orders.status, filter)).orderBy(desc(orders.createdAt));
   }
+  return ordersWithItems(rows);
+}
+
+// Build full Orders (with items) for the given order rows, batching the item
+// reads into one query. Shared by the windowed/recent getters below.
+async function ordersWithItems(rows: (typeof orders.$inferSelect)[]): Promise<Order[]> {
   const items = await itemsByOrder(rows.map((o) => o.id));
   return rows.map((o) => toOrder(o, items.get(o.id) ?? []));
+}
+
+/** Orders created at/after `start` (epoch ms), newest first. Lets analytics
+ *  load just the window it needs instead of the entire order history. */
+export async function getOrdersSince(start: number): Promise<Order[]> {
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(gte(orders.createdAt, start))
+    .orderBy(desc(orders.createdAt));
+  return ordersWithItems(rows);
+}
+
+/** The `limit` most recent orders, newest first (for "recent activity" lists). */
+export async function getRecentOrders(limit: number): Promise<Order[]> {
+  const rows = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(limit);
+  return ordersWithItems(rows);
 }
 
 export async function getOrder(id: string): Promise<Order | null> {

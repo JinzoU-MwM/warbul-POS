@@ -5,6 +5,7 @@
 // /app-version.json (refreshed by the Android CI on each app-v* tag).
 import { useEffect, useState, type JSX } from "react";
 import { isNativeApp } from "@/lib/escpos";
+import { Icons } from "./icons";
 
 type VersionInfo = { versionCode: number; versionName?: string; url?: string; notes?: string };
 
@@ -62,7 +63,7 @@ export function AppUpdateGate(): JSX.Element | null {
         boxShadow: "0 8px 24px rgba(0,0,0,.3)",
       }}
     >
-      <span style={{ fontSize: 22 }}>⬆️</span>
+      <span style={{ display: "flex", flexShrink: 0 }}><Icons.download size={20} color="#fff" /></span>
       <span style={{ flex: 1, fontSize: 13 }}>
         <b>Update aplikasi tersedia</b>
         {latest.versionName ? " (" + latest.versionName + ")" : ""}

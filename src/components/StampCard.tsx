@@ -59,7 +59,7 @@ export function StampCard({ member }: StampCardProps): JSX.Element {
         })}
       </div>
       <div style={{ fontSize: 11, opacity: 0.75, marginTop: 10 }}>
-        Kumpulkan 10 stempel untuk 1 minuman gratis ✦
+        Kumpulkan 10 stempel untuk 1 minuman gratis
       </div>
     </div>
   );

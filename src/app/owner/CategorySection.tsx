@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type JSX } from "react";
 import { getCategories, createCategory, renameCategory, deleteCategory } from "@/lib/api";
+import { Icons } from "@/components";
 
 interface Cat { id: string; name: string; position: number; count: number; }
 
@@ -101,9 +102,9 @@ export function CategorySection(): JSX.Element {
                   style={{ fontSize: 12, fontWeight: 700, border: "none", outline: "none", background: "transparent", width: Math.max(editName.length * 8, 60) }}
                 />
                 <button type="button" onClick={() => void handleRename(cat.id)} disabled={busy}
-                  style={{ fontSize: 12, color: "var(--green-700)", fontWeight: 700, border: "none", background: "none", cursor: "pointer", padding: 0 }}>✓</button>
+                  style={{ fontSize: 12, color: "var(--green-700)", fontWeight: 700, border: "none", background: "none", cursor: "pointer", padding: 0, display: "inline-flex" }}><Icons.check size={13} /></button>
                 <button type="button" onClick={() => setEditId(null)}
-                  style={{ fontSize: 12, color: "#9ca3af", border: "none", background: "none", cursor: "pointer", padding: 0 }}>✕</button>
+                  style={{ fontSize: 12, color: "#9ca3af", border: "none", background: "none", cursor: "pointer", padding: 0, display: "inline-flex" }}><Icons.x size={13} /></button>
               </div>
             );
           }
@@ -116,7 +117,7 @@ export function CategorySection(): JSX.Element {
               >
                 <span style={{ fontSize: 11, fontWeight: 700, color: "#dc2626" }}>Hapus?</span>
                 <button type="button" onClick={() => void handleDelete(cat.id)} disabled={busy}
-                  style={{ fontSize: 11, color: "#dc2626", fontWeight: 700, border: "none", background: "none", cursor: "pointer", padding: 0 }}>✓</button>
+                  style={{ fontSize: 11, color: "#dc2626", fontWeight: 700, border: "none", background: "none", cursor: "pointer", padding: 0, display: "inline-flex" }}><Icons.check size={12} /></button>
                 <button type="button" onClick={() => setDeleteId(null)}
                   style={{ fontSize: 11, color: "#9ca3af", border: "none", background: "none", cursor: "pointer", padding: 0, fontFamily: "inherit" }}>Batal</button>
               </div>
@@ -140,9 +141,9 @@ export function CategorySection(): JSX.Element {
                 type="button"
                 onClick={isDeletable ? () => { setDeleteId(cat.id); setError(null); } : undefined}
                 title={isDeletable ? "Hapus kategori" : `Ada ${cat.count} produk — pindahkan dulu sebelum menghapus`}
-                style={{ fontSize: 12, color: isDeletable ? "#ef4444" : "#d1d5db", border: "none", background: "none", cursor: isDeletable ? "pointer" : "not-allowed", padding: 0 }}
+                style={{ fontSize: 12, color: isDeletable ? "#ef4444" : "#d1d5db", border: "none", background: "none", cursor: isDeletable ? "pointer" : "not-allowed", padding: 0, display: "inline-flex" }}
               >
-                ✕
+                <Icons.x size={12} />
               </button>
             </div>
           );

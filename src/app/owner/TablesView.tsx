@@ -103,7 +103,7 @@ export function TablesView() {
       <div style={{ flex: 1, overflowY: "auto", background: "#cdbb9c" }}>
         {isLocal && (
           <div className="qrm-warn">
-            ⚠ Alamat web memakai <code>localhost</code> — QR ini hanya bisa dibuka di komputer ini, <b>tidak bisa discan dari HP</b>.
+            <Icons.alert size={15} /> Alamat web memakai <code>localhost</code> — QR ini hanya bisa dibuka di komputer ini, <b>tidak bisa discan dari HP</b>.
             Ganti dengan alamat jaringan komputer (mis. <code>http://192.168.x.x:3000</code>) atau domain asli, dan pastikan port-nya benar.
           </div>
         )}
@@ -154,7 +154,7 @@ function Face({ table, qr, display }: { table: number; qr: string; display: stri
       <div className="qrm-scan-hint">↓ Scan untuk pesan</div>
 
       <div className="qrm-qrcard">
-        <span className="qrm-qrtag">★ MENU DIGITAL</span>
+        <span className="qrm-qrtag">MENU DIGITAL</span>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={qr} alt={`QR Meja ${t}`} width={150} height={150} style={{ display: "block" }} />
       </div>

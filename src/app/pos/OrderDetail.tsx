@@ -170,7 +170,7 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
             fontSize: 13.5,
           }}
         >
-          <span style={{ fontSize: 18 }}>🔔</span> Pelanggan menyatakan sudah membayar via QRIS. Mohon cek mutasi lalu verifikasi.
+          <Icons.bell size={18} /> Pelanggan menyatakan sudah membayar via QRIS. Mohon cek mutasi lalu verifikasi.
         </div>
       )}
 
@@ -234,14 +234,14 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
             <div className="od-card" style={{ padding: 18, border: "2px solid var(--green-700)" }}>
               <div style={{ fontWeight: 700, fontSize: 14.5, marginBottom: 12 }}>Tagih {rupiah(order.total)} — pilih metode:</div>
               <div style={{ display: "flex", gap: 11 }}>
-                <button type="button" onClick={() => receive("Tunai")} className="btn btn-green od-act" style={{ flex: 1, padding: "14px" }}>💵 Tunai</button>
+                <button type="button" onClick={() => receive("Tunai")} className="btn btn-green od-act" style={{ flex: 1, padding: "14px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}><Icons.cash size={16} /> Tunai</button>
                 <button
                   type="button"
                   onClick={() => receive("Kartu / Debit")}
                   className="btn od-act"
-                  style={{ flex: 1, padding: "14px", background: "var(--cream)", color: "var(--green-800)", border: "1.5px solid var(--green-700)" }}
+                  style={{ flex: 1, padding: "14px", background: "var(--cream)", color: "var(--green-800)", border: "1.5px solid var(--green-700)", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                 >
-                  💳 Kartu
+                  <Icons.wallet size={16} /> Kartu
                 </button>
               </div>
               <button

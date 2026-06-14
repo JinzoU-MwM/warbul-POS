@@ -165,6 +165,19 @@ export const Icons: Record<string, Icon> = {
       <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3" stroke={color} strokeWidth="2" strokeLinecap="round" />
     </svg>
   ),
+  alert: ({ size = 16, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 4 21 19H3L12 4Z" stroke={color} strokeWidth="2" strokeLinejoin="round" />
+      <path d="M12 10v4" stroke={color} strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="16.6" r="1" fill={color} />
+    </svg>
+  ),
+  download: ({ size = 20, color = "currentColor" }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <path d="M12 4v10m0 0 4-4m-4 4-4-4" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 19h14" stroke={color} strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  ),
   tag: ({ size = 20, color = "currentColor" }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
       <path d="M12.5 3H7a2 2 0 0 0-2 2v5.5l9.5 9.5a2 2 0 0 0 2.8 0l4.2-4.2a2 2 0 0 0 0-2.8L12.5 3Z" stroke={color} strokeWidth="2" strokeLinejoin="round" />

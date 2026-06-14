@@ -2,7 +2,7 @@
 import { useState } from "react";
 import type { JSX } from "react";
 import type { Product, Selection } from "@/lib/types";
-import { FoodTile, ModifierGroups, QtyStepper, useModifiers } from "@/components";
+import { FoodTile, ModifierGroups, QtyStepper, Icons, useModifiers } from "@/components";
 import { rupiah } from "@/lib/constants";
 
 interface DetailSheetProps {
@@ -43,9 +43,11 @@ export default function DetailSheet({ product, onClose, onAdd }: DetailSheetProp
               border: "none",
               fontSize: 18,
               cursor: "pointer",
+              display: "grid",
+              placeItems: "center",
             }}
           >
-            ✕
+            <Icons.x size={16} />
           </button>
         </div>
 

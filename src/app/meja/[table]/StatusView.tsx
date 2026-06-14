@@ -225,7 +225,7 @@ export default function StatusView({ orderId, table, onMenu }: StatusViewProps):
                 fontSize: 13.5,
               }}
             >
-              <span>⚠︎</span> Belum bayar? Tap untuk buka QRIS lagi <span style={{ marginLeft: "auto" }}>→</span>
+              <Icons.alert size={16} /> Belum bayar? Tap untuk buka QRIS lagi <span style={{ marginLeft: "auto" }}>→</span>
             </div>
           )}
           <Stepper status={order.status} note={order.note} />

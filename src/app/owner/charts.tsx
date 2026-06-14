@@ -256,8 +256,8 @@ export function Donut({
           }}
         >
           {qrisPct >= kasirPct
-            ? "QRIS jadi metode favorit pelanggan ✦"
-            : "Bayar di kasir masih mendominasi ✦"}
+            ? "QRIS jadi metode favorit pelanggan"
+            : "Bayar di kasir masih mendominasi"}
         </div>
       </div>
     </div>

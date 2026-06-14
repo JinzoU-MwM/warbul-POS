@@ -95,7 +95,7 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
             {needPay > 0 ? (
               <span style={{ color: "var(--orange-600)", fontWeight: 700 }}>{needPay} pesanan menunggu pembayaran</span>
             ) : (
-              "Semua pesanan tertangani ✓"
+              "Semua pesanan tertangani"
             )}
           </div>
         </div>

@@ -184,7 +184,7 @@ export default function CheckoutView({
           </div>
           {member && (
             <div style={{ fontSize: 12, color: "var(--green-ok)", fontWeight: 700, marginTop: 7 }}>
-              ★ Member dikenali — {member.points} poin · {member.stamps}/10 stempel
+              <Icons.star size={12} /> Member dikenali — {member.points} poin · {member.stamps}/10 stempel
             </div>
           )}
         </div>

@@ -123,7 +123,7 @@ export function OverviewView({ userName }: { userName: string }) {
         }}
       >
         <div>
-          <div className="brand" style={{ fontSize: 23, fontWeight: 700 }}>Halo, {firstName} 👋</div>
+          <div className="brand" style={{ fontSize: 23, fontWeight: 700 }}>Halo, {firstName}</div>
           <div style={{ fontSize: 13, color: "#8b7f6c", marginTop: 2 }}>Ringkasan bisnis · {today}</div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -299,7 +299,7 @@ function NotifPanel({ orders, lowStock, lastSeen, onMarkAll }: NotifPanelProps):
               <div style={{ padding: "8px 16px 4px", fontSize: 10, fontWeight: 700, color: "#9CA3AF", letterSpacing: ".08em" }}>STOK MENIPIS</div>
               {lowStock.map((item) => (
                 <div key={item.id} style={{ padding: "9px 16px", display: "flex", gap: 10, alignItems: "center", background: "#FFF7F0", borderLeft: "3px solid var(--orange)" }}>
-                  <span style={{ color: "var(--orange-600)", flexShrink: 0 }}>⚠</span>
+                  <span style={{ color: "var(--orange-600)", flexShrink: 0, display: "flex" }}><Icons.alert size={15} /></span>
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{item.name}</div>
                     <div style={{ fontSize: 11.5, color: "#9CA3AF" }}>Sisa {item.stock}</div>

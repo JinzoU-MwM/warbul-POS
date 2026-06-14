@@ -1,6 +1,7 @@
 // Vertical 4-step order timeline. Pure display.
 import type { JSX } from "react";
 import type { OrderStatus } from "@/lib/types";
+import { Icons } from "./icons";
 
 const STEPS = ["Pesanan Diterima", "Pembayaran", "Diproses", "Selesai"] as const;
 
@@ -62,7 +63,7 @@ export function Stepper({ status, note }: StepperProps): JSX.Element {
                 boxShadow: current ? "0 0 0 5px rgba(62,92,70,.18)" : "none",
               }}
             >
-              {reached ? "✓" : i + 1}
+              {reached ? <Icons.check size={14} /> : i + 1}
             </div>
             <div style={{ paddingTop: 3 }}>
               <div

@@ -25,7 +25,7 @@ export default function CartView({ lines, subtotal, serviceFee, onQty, onMenu, o
               <Bean color="var(--green-800)" size={70} />
             </div>
             <div style={{ fontWeight: 700, marginTop: 12, fontSize: 16 }}>Keranjang masih kosong</div>
-            <div style={{ color: "#8b7f6c", fontSize: 13, marginTop: 4 }}>Yuk pilih menu favoritmu dulu ☕</div>
+            <div style={{ color: "#8b7f6c", fontSize: 13, marginTop: 4 }}>Yuk pilih menu favoritmu dulu</div>
             <button
               type="button"
               onClick={onMenu}

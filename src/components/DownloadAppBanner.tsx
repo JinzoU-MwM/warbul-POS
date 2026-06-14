@@ -4,6 +4,7 @@
 // Actions "Android APK" workflow to the latest release.
 import { useEffect, useState, type JSX } from "react";
 import { isNativeApp } from "@/lib/escpos";
+import { Icons } from "./icons";
 
 // Served from the app's own domain (Vercel CDN) — far faster in Indonesia than
 // GitHub Releases. The file lives at public/warbul.apk and is refreshed by the
@@ -34,7 +35,7 @@ export function DownloadAppBanner(): JSX.Element | null {
         boxShadow: "var(--shadow-sm)",
       }}
     >
-      <span style={{ fontSize: 26, lineHeight: 1 }}>📲</span>
+      <span style={{ display: "flex", flexShrink: 0 }}><Icons.download size={24} color="#fff" /></span>
       <span style={{ flex: 1 }}>
         <span style={{ display: "block", fontWeight: 800, fontSize: 14.5 }}>
           Download Aplikasi Kasir (Android)

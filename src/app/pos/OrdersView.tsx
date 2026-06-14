@@ -55,7 +55,10 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
       ? orders.filter((o) => o.status !== ORDER_STATUS.DONE && o.status !== ORDER_STATUS.CANCELLED)
       : orders.filter((o) => o.status === filter);
 
-  const selected = orders.find((o) => o.id === sel) ?? list[0] ?? orders[0] ?? null;
+  // Resolve the detail selection within the CURRENT filtered list only, so an
+  // empty filter (e.g. no active orders) shows the placeholder instead of
+  // falling back to some unrelated order from another status.
+  const selected = list.find((o) => o.id === sel) ?? list[0] ?? null;
   const needPay = orders.filter((o) => o.status === ORDER_STATUS.WAIT_PAY).length;
 
   // auto-select first order on load if none selected

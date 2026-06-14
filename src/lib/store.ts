@@ -465,12 +465,48 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
   return (await getOrder(id))!;
 }
 
+/** Return to inventory the ingredients an order reserved at creation. Only base
+ *  product recipes are restored — extra ingredients from chosen options aren't
+ *  tracked on saved line items (opts holds labels, not option ids). */
+async function restoreStock(items: OrderItem[]): Promise<void> {
+  const prodRecipes = await db.select().from(recipes).where(eq(recipes.ownerType, "product"));
+  if (!prodRecipes.length) return;
+  const byProduct = new Map<string, { ingredientId: string; qty: number }[]>();
+  for (const r of prodRecipes) {
+    const a = byProduct.get(r.ownerId) ?? [];
+    a.push({ ingredientId: r.ingredientId, qty: r.qty });
+    byProduct.set(r.ownerId, a);
+  }
+  const giveBack = new Map<string, number>();
+  for (const it of items) {
+    for (const r of byProduct.get(it.id) ?? []) {
+      giveBack.set(r.ingredientId, (giveBack.get(r.ingredientId) ?? 0) + r.qty * it.qty);
+    }
+  }
+  if (!giveBack.size) return;
+  for (const [ingId, amt] of giveBack) {
+    const [ing] = await db.select().from(ingredients).where(eq(ingredients.id, ingId));
+    if (ing) await db.update(ingredients).set({ stock: ing.stock + amt }).where(eq(ingredients.id, ingId));
+  }
+  emitChange("menu");
+}
+
 export async function updateOrder(id: string, patch: Partial<Order>): Promise<Order | null> {
+  // Detect a transition INTO cancelled so reserved stock is returned exactly once.
+  let restockItems: OrderItem[] | null = null;
+  if (patch.status === ORDER_STATUS.CANCELLED) {
+    const before = await getOrder(id);
+    if (before && before.status !== ORDER_STATUS.CANCELLED) restockItems = before.items;
+  }
+
   const data: Record<string, unknown> = {};
   for (const k of ["table", "method", "paid", "status", "payDetail", "note", "promo", "phone", "pakasir"] as const) {
     if (k in patch) data[k] = (patch as Record<string, unknown>)[k];
   }
   if (Object.keys(data).length) await db.update(orders).set(data).where(eq(orders.id, id));
+
+  if (restockItems) await restoreStock(restockItems);
+
   emitChange("orders");
   return getOrder(id);
 }

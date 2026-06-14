@@ -45,9 +45,18 @@ export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: strin
       patch = rawBody;
     }
 
-    // Block cancellation once paid (guards against webhook race where paid=true but status still WAIT_PAY).
-    if (patch.status === ORDER_STATUS.CANCELLED && (existing.status !== ORDER_STATUS.WAIT_PAY || existing.paid)) {
-      return NextResponse.json({ error: "Pesanan sudah dibayar, tidak bisa dibatalkan" }, { status: 409 });
+    // Cancellation rules depend on who is asking:
+    //  • Customers (anonymous) may only cancel BEFORE payment — while still awaiting it.
+    //  • Cashiers (authenticated) may void any order that isn't already finished or
+    //    cancelled; a paid order can still be voided (cash refunded manually).
+    if (patch.status === ORDER_STATUS.CANCELLED) {
+      if (isCustomerCancel) {
+        if (existing.status !== ORDER_STATUS.WAIT_PAY || existing.paid) {
+          return NextResponse.json({ error: "Pesanan sudah diproses, tidak bisa dibatalkan" }, { status: 409 });
+        }
+      } else if (existing.status === ORDER_STATUS.DONE || existing.status === ORDER_STATUS.CANCELLED) {
+        return NextResponse.json({ error: "Pesanan sudah selesai atau dibatalkan" }, { status: 409 });
+      }
     }
 
     const order = await updateOrder(id, patch);

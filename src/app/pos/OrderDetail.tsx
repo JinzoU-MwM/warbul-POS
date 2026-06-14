@@ -58,19 +58,21 @@ function Line({ k, v }: { k: string; v: string }): JSX.Element {
 export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): JSX.Element {
   const [payOpen, setPayOpen] = useState(false);
   const [receipt, setReceipt] = useState(false);
+  const [cancelStep, setCancelStep] = useState<"idle" | "confirm">("idle");
   const [cancelBusy, setCancelBusy] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => () => { mountedRef.current = false; }, []);
 
-  const canCancel = order.status === ORDER_STATUS.WAIT_PAY && !order.paid;
+  // Cashier may void any order that isn't already finished or cancelled.
+  const canCancel = order.status !== ORDER_STATUS.DONE && order.status !== ORDER_STATUS.CANCELLED;
 
   async function handleCancel() {
     setCancelBusy(true);
     try {
       await onPatch(order.id, { status: ORDER_STATUS.CANCELLED });
     } finally {
-      if (mountedRef.current) setCancelBusy(false);
+      if (mountedRef.current) { setCancelBusy(false); setCancelStep("idle"); }
     }
   }
 
@@ -101,8 +103,8 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
           <StatusPill status={order.status} />
           <button
             type="button"
-            onClick={handleCancel}
-            disabled={!canCancel || cancelBusy}
+            onClick={() => setCancelStep("confirm")}
+            disabled={!canCancel || cancelBusy || cancelStep === "confirm"}
             style={{
               display: "flex", alignItems: "center", gap: 5,
               fontSize: 12, fontWeight: 700, padding: "5px 11px", borderRadius: 8,
@@ -113,10 +115,44 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
               fontFamily: "inherit",
             }}
           >
-            {canCancel ? "✕ Batalkan" : "🔒 Batalkan"}
+            {canCancel ? <Icons.x size={13} /> : <Icons.lock size={13} />}
+            Batalkan
           </button>
         </div>
       </div>
+
+      {cancelStep === "confirm" && (
+        <div style={{ marginTop: 16, border: "1.5px solid #DC2626", borderRadius: 14, padding: "15px 17px", background: "#FEF2F2" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#991B1B" }}>Batalkan pesanan {order.id}?</div>
+          {order.paid ? (
+            <div style={{ fontSize: 13, color: "#B91C1C", marginTop: 6, lineHeight: 1.5 }}>
+              Pesanan ini sudah <b>dibayar ({order.payDetail || "Lunas"})</b>. Kembalikan uang ke pelanggan secara manual — sistem tidak memproses refund otomatis.
+            </div>
+          ) : (
+            <div style={{ fontSize: 13, color: "#B91C1C", marginTop: 6, lineHeight: 1.5 }}>
+              Stok bahan yang terpakai akan dikembalikan ke inventaris.
+            </div>
+          )}
+          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
+            <button
+              type="button"
+              disabled={cancelBusy}
+              onClick={() => setCancelStep("idle")}
+              style={{ flex: 1, padding: "11px", borderRadius: 11, border: "1.5px solid #D1D5DB", background: "#fff", color: "#555", fontWeight: 600, fontSize: 13.5, cursor: "pointer", fontFamily: "inherit" }}
+            >
+              Tidak
+            </button>
+            <button
+              type="button"
+              disabled={cancelBusy}
+              onClick={handleCancel}
+              style={{ flex: 1.4, padding: "11px", borderRadius: 11, border: "none", background: "#DC2626", color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: cancelBusy ? "not-allowed" : "pointer", opacity: cancelBusy ? 0.6 : 1, fontFamily: "inherit" }}
+            >
+              {cancelBusy ? "Membatalkan…" : "Ya, Batalkan Pesanan"}
+            </button>
+          </div>
+        </div>
+      )}
 
       {claimed && order.status === ORDER_STATUS.WAIT_PAY && (
         <div

@@ -1,8 +1,8 @@
 "use client";
 // Loud, can't-miss alarm for new dine-in customer orders. Mounted in the cashier
 // (PosApp) and owner (OwnerApp) shells. Rides the existing 6s order poll — when a
-// new unpaid dine-in order appears it shows a blocking overlay and rings a Web
-// Audio chime every ~4s until the cashier acknowledges (taps a button).
+// new unpaid dine-in order appears it shows a blocking overlay and plays the
+// notification sound every ~4s until the cashier acknowledges (taps a button).
 import { useEffect, useRef, useState, type JSX } from "react";
 import { listOrders } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
@@ -10,6 +10,7 @@ import { ORDER_STATUS } from "@/lib/constants";
 import type { Order } from "@/lib/types";
 import { Icons } from "./icons";
 
+const SOUND_URL = "/new-order.mp3";
 const pad2 = (n: number) => String(n).padStart(2, "0");
 
 // A "new order" worth ringing for = a dine-in order still awaiting payment.
@@ -24,56 +25,76 @@ export function NewOrderAlarm({ onView }: { onView: () => void }): JSX.Element |
   const seen = useRef<Set<string> | null>(null); // ids already accounted for (seeded on load)
   const [pending, setPending] = useState<Order[]>([]); // unacknowledged new orders
   const [audioReady, setAudioReady] = useState(false);
-  const acRef = useRef<AudioContext | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const acRef = useRef<AudioContext | null>(null); // oscillator fallback if the mp3 can't play
 
-  function ensureAudio(): AudioContext | null {
+  /* ── the notification sound element ── */
+  useEffect(() => {
+    const a = new Audio(SOUND_URL);
+    a.preload = "auto";
+    audioRef.current = a;
+    return () => { a.pause(); audioRef.current = null; };
+  }, []);
+
+  // Short two-tone beep — only used if the mp3 fails (e.g. offline / decode error).
+  function oscBeep() {
     try {
       const Ctor: ACtor | undefined =
         window.AudioContext || (window as unknown as { webkitAudioContext?: ACtor }).webkitAudioContext;
-      if (!Ctor) return null;
+      if (!Ctor) return;
       const ac = acRef.current ?? new Ctor();
       acRef.current = ac;
-      void ac.resume?.();
-      setAudioReady(ac.state === "running");
-      ac.onstatechange = () => setAudioReady(ac.state === "running");
-      return ac;
-    } catch {
-      return null;
-    }
+      if (ac.state !== "running") return;
+      const now = ac.currentTime;
+      for (const { f, t } of [{ f: 880, t: 0 }, { f: 660, t: 0.2 }]) {
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = "sine";
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0.0001, now + t);
+        gain.gain.exponentialRampToValueAtTime(0.4, now + t + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.5);
+        osc.connect(gain).connect(ac.destination);
+        osc.start(now + t);
+        osc.stop(now + t + 0.55);
+      }
+    } catch {}
   }
 
-  /* ── audio unlock: browsers require a user gesture before sound ── */
+  function playSound() {
+    const a = audioRef.current;
+    if (!a) { oscBeep(); return; }
+    try { a.currentTime = 0; } catch {}
+    a.play().then(() => setAudioReady(true)).catch(() => oscBeep());
+  }
+
+  // Unlock audio on the first user gesture: a muted play+pause primes the element
+  // (and resumes the fallback context) so later programmatic playback is allowed.
+  function unlock() {
+    const a = audioRef.current;
+    if (a) {
+      a.muted = true;
+      a.play()
+        .then(() => { a.pause(); try { a.currentTime = 0; } catch {} a.muted = false; setAudioReady(true); })
+        .catch(() => { a.muted = false; });
+    }
+    try {
+      const Ctor: ACtor | undefined =
+        window.AudioContext || (window as unknown as { webkitAudioContext?: ACtor }).webkitAudioContext;
+      if (Ctor) { const ac = acRef.current ?? new Ctor(); acRef.current = ac; void ac.resume?.(); }
+    } catch {}
+  }
+
   useEffect(() => {
-    function unlock() {
-      if (acRef.current?.state === "running") return;
-      ensureAudio();
-    }
-    window.addEventListener("pointerdown", unlock);
-    window.addEventListener("keydown", unlock);
+    function onGesture() { if (!audioReady) unlock(); }
+    window.addEventListener("pointerdown", onGesture);
+    window.addEventListener("keydown", onGesture);
     return () => {
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
+      window.removeEventListener("pointerdown", onGesture);
+      window.removeEventListener("keydown", onGesture);
     };
-  }, []);
-
-  function chime() {
-    const ac = acRef.current;
-    if (!ac || ac.state !== "running") return;
-    const now = ac.currentTime;
-    // two-tone "ding-dong"
-    for (const { f, t } of [{ f: 880, t: 0 }, { f: 660, t: 0.2 }]) {
-      const osc = ac.createOscillator();
-      const gain = ac.createGain();
-      osc.type = "sine";
-      osc.frequency.value = f;
-      gain.gain.setValueAtTime(0.0001, now + t);
-      gain.gain.exponentialRampToValueAtTime(0.4, now + t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.5);
-      osc.connect(gain).connect(ac.destination);
-      osc.start(now + t);
-      osc.stop(now + t + 0.55);
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [audioReady]);
 
   /* ── detect new orders off the live poll ── */
   function refresh() {
@@ -101,11 +122,11 @@ export function NewOrderAlarm({ onView }: { onView: () => void }): JSX.Element |
   useEffect(() => { refresh(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useLive(["orders"], refresh);
 
-  /* ── ring loop: chime now + every 4s while anything is pending ── */
+  /* ── ring loop: play now + every 4s while anything is pending ── */
   useEffect(() => {
     if (!pending.length) return;
-    chime();
-    const id = setInterval(chime, 4000);
+    playSound();
+    const id = setInterval(playSound, 4000);
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending.length, audioReady]);
@@ -166,7 +187,7 @@ export function NewOrderAlarm({ onView }: { onView: () => void }): JSX.Element |
           {!audioReady && (
             <button
               type="button"
-              onClick={() => ensureAudio()}
+              onClick={() => { unlock(); playSound(); }}
               className="btn"
               style={{ flex: 1, padding: "11px", borderRadius: 13, background: "var(--green-ok-bg)", color: "var(--green-700)", border: "1.5px solid var(--green-700)", fontWeight: 700 }}
             >

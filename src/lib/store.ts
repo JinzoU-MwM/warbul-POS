@@ -2,7 +2,7 @@
 // settings. The server analog of design-reference/warbul.js. Route handlers
 // (Phase 1) build HTTP/validation/auth on top of these functions.
 import "server-only";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories, promotions, redemptions } from "@/db/schema";
 import { computeTotals } from "./pricing";
@@ -150,9 +150,17 @@ export async function setRecipe(ownerType: RecipeOwner, ownerId: string, items: 
 
 /* ─────────────────────────── menu (availability derived from ingredients) ─────────────────────────── */
 
-async function deriveMenu(rows: (typeof products.$inferSelect)[]): Promise<Product[]> {
+// Shared inputs for availability derivation. Loaded once per request (ingredient
+// stock + product recipes) so deriveMenu() can stay a pure, scan-free function —
+// callers that derive many products (getMenu, addOrder) pay the two reads once
+// instead of per product.
+interface MenuCtx {
+  ingById: Map<string, Ingredient>;
+  byProduct: Map<string, { ingredientId: string; qty: number }[]>;
+}
+
+async function loadMenuCtx(): Promise<MenuCtx> {
   const ings = await getIngredients();
-  const stockMap = new Map(ings.map((i) => [i.id, i.stock]));
   const prodRecipes = await db.select().from(recipes).where(eq(recipes.ownerType, "product"));
   const byProduct = new Map<string, { ingredientId: string; qty: number }[]>();
   for (const r of prodRecipes) {
@@ -160,13 +168,17 @@ async function deriveMenu(rows: (typeof products.$inferSelect)[]): Promise<Produ
     arr.push({ ingredientId: r.ingredientId, qty: r.qty });
     byProduct.set(r.ownerId, arr);
   }
+  return { ingById: new Map(ings.map((i) => [i.id, i])), byProduct };
+}
+
+function deriveMenu(rows: (typeof products.$inferSelect)[], ctx: MenuCtx): Product[] {
   return rows.map((r) => {
-    const recipe = byProduct.get(r.id) ?? [];
+    const recipe = ctx.byProduct.get(r.id) ?? [];
     let makeable = UNLIMITED_STOCK;
     if (recipe.length) {
       makeable = Math.min(
         ...recipe.map((ri) => {
-          const s = stockMap.get(ri.ingredientId) ?? 0;
+          const s = ctx.ingById.get(ri.ingredientId)?.stock ?? 0;
           return ri.qty > 0 ? Math.floor(s / ri.qty) : UNLIMITED_STOCK;
         }),
       );
@@ -186,12 +198,12 @@ async function deriveMenu(rows: (typeof products.$inferSelect)[]): Promise<Produ
 
 export async function getMenu(): Promise<Product[]> {
   const rows = await db.select().from(products).orderBy(products.sort);
-  return deriveMenu(rows);
+  return deriveMenu(rows, await loadMenuCtx());
 }
 
 export async function getProduct(id: string): Promise<Product | null> {
   const [r] = await db.select().from(products).where(eq(products.id, id));
-  return r ? (await deriveMenu([r]))[0] : null;
+  return r ? deriveMenu([r], await loadMenuCtx())[0] : null;
 }
 
 export function isOrderable(p: Pick<Product, "available" | "stock">): boolean {
@@ -299,9 +311,27 @@ function toOrder(o: typeof orders.$inferSelect, items: OrderItem[]): Order {
   };
 }
 
+function toItem(r: typeof orderItems.$inferSelect): OrderItem {
+  return { id: r.productId, name: r.name, price: r.price, qty: r.qty, opts: r.opts };
+}
+
 async function itemsFor(orderId: string): Promise<OrderItem[]> {
   const rows = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
-  return rows.map((r) => ({ id: r.productId, name: r.name, price: r.price, qty: r.qty, opts: r.opts }));
+  return rows.map(toItem);
+}
+
+// Items for many orders in a single query, grouped by orderId — avoids the N+1
+// of calling itemsFor() per order when building a list.
+async function itemsByOrder(orderIds: string[]): Promise<Map<string, OrderItem[]>> {
+  const byOrder = new Map<string, OrderItem[]>();
+  if (!orderIds.length) return byOrder;
+  const rows = await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds));
+  for (const r of rows) {
+    const arr = byOrder.get(r.orderId) ?? [];
+    arr.push(toItem(r));
+    byOrder.set(r.orderId, arr);
+  }
+  return byOrder;
 }
 
 export type OrderFilter = "all" | "active" | "Menunggu Pembayaran" | "Diproses" | "Selesai";
@@ -315,9 +345,8 @@ export async function getOrders(filter: OrderFilter = "all"): Promise<Order[]> {
   } else {
     rows = await db.select().from(orders).where(eq(orders.status, filter)).orderBy(desc(orders.createdAt));
   }
-  const out: Order[] = [];
-  for (const o of rows) out.push(toOrder(o, await itemsFor(o.id)));
-  return out;
+  const items = await itemsByOrder(rows.map((o) => o.id));
+  return rows.map((o) => toOrder(o, items.get(o.id) ?? []));
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
@@ -362,20 +391,23 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   const groups = await getModifierGroups();
 
-  // Recipes for ingredient deduction (base product + chosen modifier options).
-  const prodRecipes = await db.select().from(recipes).where(eq(recipes.ownerType, "product"));
+  // Ingredient stock + base-product recipes, loaded once and reused below for
+  // availability, stock validation and deduction (instead of re-scanning per line).
+  const ctx = await loadMenuCtx();
+  // Modifier-option recipes (a separate recipe ownerType) for add-on ingredients.
   const optRecipes = await db.select().from(recipes).where(eq(recipes.ownerType, "option"));
-  const byOwner = (rows: typeof prodRecipes) => {
-    const m = new Map<string, { ingredientId: string; qty: number }[]>();
-    for (const r of rows) {
-      const a = m.get(r.ownerId) ?? [];
-      a.push({ ingredientId: r.ingredientId, qty: r.qty });
-      m.set(r.ownerId, a);
-    }
-    return m;
-  };
-  const prodMap = byOwner(prodRecipes);
-  const optMap = byOwner(optRecipes);
+  const optMap = new Map<string, { ingredientId: string; qty: number }[]>();
+  for (const r of optRecipes) {
+    const a = optMap.get(r.ownerId) ?? [];
+    a.push({ ingredientId: r.ingredientId, qty: r.qty });
+    optMap.set(r.ownerId, a);
+  }
+
+  // Resolve every ordered product in a single query, derive availability once.
+  const lineIds = [...new Set(input.lines.map((l) => l.id))];
+  const prodRows = await db.select().from(products).where(inArray(products.id, lineIds));
+  const productById = new Map(deriveMenu(prodRows, ctx).map((p) => [p.id, p]));
+
   const ingNeed = new Map<string, number>();
   const addNeed = (rows: { ingredientId: string; qty: number }[] | undefined, mult: number) => {
     if (!rows) return;
@@ -384,12 +416,12 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   const resolved: OrderItem[] = [];
   for (const line of input.lines) {
-    const p = await getProduct(line.id);
+    const p = productById.get(line.id);
     if (!p) throw new Error(`Menu tidak ditemukan: ${line.id}`);
     if (!isOrderable(p)) throw new Error(`${p.name} sedang habis`);
     const qty = Math.max(1, Math.floor(line.qty || 1));
     // ingredient requirements: base product recipe + each chosen option's recipe
-    addNeed(prodMap.get(p.id), qty);
+    addNeed(ctx.byProduct.get(p.id), qty);
     modGroupsFor(p, groups).forEach((g) => {
       const v = line.sel?.[g.id];
       const ids = typeof v === "string" ? [v] : Array.isArray(v) ? v : [];
@@ -403,9 +435,8 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   // Validate ingredient stock for the whole order up front.
   if (ingNeed.size) {
-    const imap = new Map((await getIngredients()).map((i) => [i.id, i]));
     for (const [ingId, need] of ingNeed) {
-      const ing = imap.get(ingId);
+      const ing = ctx.ingById.get(ingId);
       if (ing && ing.stock < need) {
         throw new Error(`Bahan ${ing.name} tidak cukup (butuh ${need} ${ing.unit}, sisa ${ing.stock})`);
       }
@@ -414,15 +445,12 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   // Discounts + totals computed from server-resolved prices (never trust client).
   const subtotalForDiscount = resolved.reduce((s, i) => s + i.price * i.qty, 0);
-  const categories_ = (await Promise.all(resolved.map(async (it) => {
-    const p = await getProduct(it.id);
-    return p?.cat ?? "";
-  }))).filter(Boolean);
+  const categories_ = [...new Set(resolved.map((it) => productById.get(it.id)?.cat ?? "").filter(Boolean))];
   const totalQty = resolved.reduce((s, i) => s + i.qty, 0);
   const discountResult = await applyDiscounts({
     subtotal: subtotalForDiscount,
     qty: totalQty,
-    categories: [...new Set(categories_)],
+    categories: categories_,
     voucherCode: input.promoCode ?? undefined,
   });
   const promo: Order["promo"] = discountResult.applied.length ? discountResult.applied : null;
@@ -450,10 +478,11 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
     });
   }
 
-  // Deduct ingredients (this is what makes products go "Habis").
+  // Deduct ingredients (this is what makes products go "Habis"). Uses the stock
+  // snapshot already loaded in ctx, so no extra read per ingredient.
   if (ingNeed.size) {
     for (const [ingId, need] of ingNeed) {
-      const [ing] = await db.select().from(ingredients).where(eq(ingredients.id, ingId));
+      const ing = ctx.ingById.get(ingId);
       if (ing) await db.update(ingredients).set({ stock: Math.max(0, ing.stock - need) }).where(eq(ingredients.id, ingId));
     }
     emitChange("menu");

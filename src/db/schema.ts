@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 
 /* ─────────────────────────── Better Auth tables ───────────────────────────
    Standard Better Auth schema (email/password + username plugin) for
@@ -68,7 +68,7 @@ export const products = sqliteTable("products", {
   available: integer("available", { mode: "boolean" }).notNull().default(true),
   desc: text("desc").notNull().default(""),
   sort: integer("sort").notNull().default(0), // preserve seed display order
-});
+}, (t) => [index("products_cat_idx").on(t.cat)]);
 
 // Raw materials / ingredients (beans, milk, cups, …).
 export const ingredients = sqliteTable("ingredients", {
@@ -88,7 +88,10 @@ export const recipes = sqliteTable("recipes", {
   ownerId: text("owner_id").notNull(),
   ingredientId: text("ingredient_id").notNull().references(() => ingredients.id, { onDelete: "cascade" }),
   qty: integer("qty").notNull().default(0),
-});
+}, (t) => [
+  index("recipes_owner_idx").on(t.ownerType, t.ownerId),
+  index("recipes_ingredient_idx").on(t.ingredientId),
+]);
 
 export const orders = sqliteTable("orders", {
   id: text("id").primaryKey(), // WB-xxx
@@ -112,7 +115,10 @@ export const orders = sqliteTable("orders", {
     fee: number;
     expiredAt: string;
   } | null>(),
-});
+}, (t) => [
+  index("orders_created_at_idx").on(t.createdAt),
+  index("orders_status_idx").on(t.status),
+]);
 
 export const orderItems = sqliteTable("order_items", {
   id: text("id").primaryKey(),
@@ -122,7 +128,7 @@ export const orderItems = sqliteTable("order_items", {
   price: integer("price").notNull(), // unit price incl. modifiers
   qty: integer("qty").notNull(),
   opts: text("opts", { mode: "json" }).notNull().$type<string[]>(),
-});
+}, (t) => [index("order_items_order_id_idx").on(t.orderId)]);
 
 export const members = sqliteTable("members", {
   phone: text("phone").primaryKey(),
@@ -170,7 +176,7 @@ export const redemptions = sqliteTable("redemptions", {
   orderId:     text("order_id").notNull(),
   amount:      integer("amount").notNull(),
   redeemedAt:  integer("redeemed_at").notNull(),
-});
+}, (t) => [index("redemptions_promotion_idx").on(t.promotionId)]);
 
 // Modifier / add-on groups (e.g. Ukuran, Tambahan) assigned to product categories.
 export const modifierGroups = sqliteTable("modifier_groups", {
@@ -188,4 +194,4 @@ export const modifierOptions = sqliteTable("modifier_options", {
   price: integer("price").notNull().default(0),
   isDefault: integer("is_default", { mode: "boolean" }).notNull().default(false),
   sort: integer("sort").notNull().default(0),
-});
+}, (t) => [index("modifier_options_group_idx").on(t.groupId)]);

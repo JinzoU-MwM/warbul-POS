@@ -121,6 +121,23 @@ async function main() {
   `);
   console.log("✓ redemptions table ready");
 
+  /* ── indexes (speed up hot lookups; FKs are NOT auto-indexed in SQLite) ── */
+  // Names match the Drizzle schema so `drizzle-kit push` and this script agree.
+  const INDEXES = [
+    ["order_items_order_id_idx",     "order_items",      "(order_id)"],
+    ["orders_created_at_idx",        "orders",           "(created_at)"],
+    ["orders_status_idx",            "orders",           "(status)"],
+    ["recipes_owner_idx",            "recipes",          "(owner_type, owner_id)"],
+    ["recipes_ingredient_idx",       "recipes",          "(ingredient_id)"],
+    ["modifier_options_group_idx",   "modifier_options", "(group_id)"],
+    ["redemptions_promotion_idx",    "redemptions",      "(promotion_id)"],
+    ["products_cat_idx",             "products",         "(cat)"],
+  ];
+  for (const [name, table, cols] of INDEXES) {
+    await db.execute(`CREATE INDEX IF NOT EXISTS ${name} ON ${table} ${cols}`);
+  }
+  console.log(`✓ ${INDEXES.length} indexes ready`);
+
   console.log("✓ Migration complete.");
 }
 

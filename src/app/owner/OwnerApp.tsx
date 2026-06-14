@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Icons } from "@/components";
+import { NewOrderAlarm } from "@/components/NewOrderAlarm";
 import { OverviewView } from "./OverviewView";
 import { ReportView } from "./ReportView";
 import { SettingsView } from "./SettingsView";
@@ -62,6 +63,7 @@ export function OwnerApp({ user }: { user: OwnerUser }) {
       }}
     >
       <OwnerStyles />
+      <NewOrderAlarm onView={() => setView("orders")} />
       <aside className="owner-sidebar">
         <div className="owner-brand">
           <Image src="/warbul-logo.png" alt="Warbul" width={42} height={42} style={{ borderRadius: "50%" }} />

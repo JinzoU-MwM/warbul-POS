@@ -7,6 +7,7 @@ import { listOrders } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
 import { ORDER_STATUS } from "@/lib/constants";
 import { Icons } from "@/components";
+import { NewOrderAlarm } from "@/components/NewOrderAlarm";
 import { OrdersView } from "./OrdersView";
 import { NewOrderView } from "./NewOrderView";
 import { MenuAdminView } from "./MenuAdminView";
@@ -48,6 +49,7 @@ export function PosApp({ user, initialView = "orders" }: { user: PosUser; initia
   return (
     <div style={{ display: "flex", minHeight: "100dvh", background: "var(--paper)", color: "var(--ink)", fontFamily: "var(--font-jakarta), sans-serif" }}>
       <PosSidebarStyles />
+      <NewOrderAlarm onView={() => setView("orders")} />
       <aside className="pos-sidebar">
         <div className="pos-brand">
           <Image src="/warbul-logo.png" alt="Warbul" width={40} height={40} style={{ borderRadius: "50%" }} />

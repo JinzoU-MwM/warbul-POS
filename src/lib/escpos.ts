@@ -11,6 +11,7 @@
 import type { Order, StoreSettings } from "@/lib/types";
 import { rupiah } from "@/lib/constants";
 import { Capacitor } from "@capacitor/core";
+import { LOGO_BITMAP, LOGO_BYTES_PER_ROW, LOGO_HEIGHT } from "@/lib/logoRaster";
 
 // ---- Paper width setting (per-device, persisted in localStorage) ----
 export type PaperWidth = 58 | 80;
@@ -101,6 +102,16 @@ class EscPos {
     this.line("-".repeat(this.cols));
     return this;
   }
+  // Print a 1-bpp raster bitmap via GS v 0 (normal mode). Bytes are packed
+  // MSB-first, row by row. Centered/left depends on the current align().
+  image(bytesPerRow: number, height: number, data: Uint8Array) {
+    this.raw(GS, 0x76, 0x30, 0x00);
+    this.raw(bytesPerRow & 0xff, (bytesPerRow >> 8) & 0xff);
+    this.raw(height & 0xff, (height >> 8) & 0xff);
+    this.buf.push(...data);
+    this.raw(0x0a);
+    return this;
+  }
   bytes(): Uint8Array {
     return Uint8Array.from(this.buf);
   }
@@ -126,7 +137,9 @@ export function buildReceiptEscPos(
   });
   const method = order.method === "qris" ? "QRIS" : order.payDetail || "Kasir";
 
-  p.init().align(1).bold(true).size(0x11).line(storeName).size(0).bold(false);
+  p.init().align(1);
+  p.image(LOGO_BYTES_PER_ROW, LOGO_HEIGHT, LOGO_BITMAP);
+  p.bold(true).size(0x11).line(storeName).size(0).bold(false);
   if (address) p.line(address);
   p.align(0).rule();
   p.kv(String(order.id), tableLabel);
@@ -150,7 +163,7 @@ export function buildReceiptEscPos(
   p.kv("Metode", method);
   p.rule();
 
-  p.align(1).line("Terima kasih sudah ngopi di Warbul").line("Simpan struk sebagai bukti bayar");
+  p.align(1).line("Terima kasih atas pesanan Anda");
   p.feed(1).cut();
   return p.bytes();
 }

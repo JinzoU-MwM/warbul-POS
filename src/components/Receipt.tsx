@@ -127,9 +127,7 @@ export function Receipt({ order, settings, cashierName }: ReceiptProps): JSX.Ele
       <hr style={dash} />
 
       <div style={{ textAlign: "center", fontSize: 11.5, color: "#8b7f6c", lineHeight: 1.6 }}>
-        Terima kasih sudah ngopi di Warbul
-        <br />
-        Simpan struk ini sebagai bukti pembayaran
+        Terima kasih atas pesanan Anda
       </div>
       <div style={{ textAlign: "center", marginTop: 10, opacity: 0.5 }}>
         <Bean color="#21342A" size={20} />

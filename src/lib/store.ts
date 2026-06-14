@@ -2,7 +2,7 @@
 // settings. The server analog of design-reference/warbul.js. Route handlers
 // (Phase 1) build HTTP/validation/auth on top of these functions.
 import "server-only";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, gte, inArray, sql, count, max } from "drizzle-orm";
 import { db } from "@/db";
 import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories, promotions, redemptions } from "@/db/schema";
 import { computeTotals } from "./pricing";
@@ -44,8 +44,8 @@ export async function createModifierGroup(input: {
   name: string; type: ModType; categories: Category[];
 }): Promise<string> {
   const id = modId("g");
-  const count = (await db.select().from(modifierGroups)).length;
-  await db.insert(modifierGroups).values({ id, name: input.name, type: input.type, categories: input.categories, sort: count });
+  const [{ n }] = await db.select({ n: count() }).from(modifierGroups);
+  await db.insert(modifierGroups).values({ id, name: input.name, type: input.type, categories: input.categories, sort: n });
   emitChange("modifiers");
   return id;
 }
@@ -68,9 +68,9 @@ export async function createModifierOption(input: {
   groupId: string; label: string; price: number; isDefault?: boolean;
 }): Promise<string> {
   const id = modId("o");
-  const count = (await db.select().from(modifierOptions).where(eq(modifierOptions.groupId, input.groupId))).length;
+  const [{ n }] = await db.select({ n: count() }).from(modifierOptions).where(eq(modifierOptions.groupId, input.groupId));
   await db.insert(modifierOptions).values({
-    id, groupId: input.groupId, label: input.label, price: input.price, isDefault: input.isDefault ?? false, sort: count,
+    id, groupId: input.groupId, label: input.label, price: input.price, isDefault: input.isDefault ?? false, sort: n,
   });
   emitChange("modifiers");
   return id;
@@ -98,10 +98,10 @@ export async function getIngredients(): Promise<Ingredient[]> {
 
 export async function createIngredient(input: { name: string; unit: string; stock: number; lowThreshold?: number }): Promise<string> {
   const id = modId("i");
-  const count = (await db.select().from(ingredients)).length;
+  const [{ n }] = await db.select({ n: count() }).from(ingredients);
   await db.insert(ingredients).values({
     id, name: input.name, unit: input.unit, stock: Math.max(0, Math.floor(input.stock || 0)),
-    lowThreshold: Math.max(0, Math.floor(input.lowThreshold || 0)), sort: count,
+    lowThreshold: Math.max(0, Math.floor(input.lowThreshold || 0)), sort: n,
   });
   emitChange("menu");
   return id;
@@ -150,9 +150,17 @@ export async function setRecipe(ownerType: RecipeOwner, ownerId: string, items: 
 
 /* ─────────────────────────── menu (availability derived from ingredients) ─────────────────────────── */
 
-async function deriveMenu(rows: (typeof products.$inferSelect)[]): Promise<Product[]> {
+// Shared inputs for availability derivation. Loaded once per request (ingredient
+// stock + product recipes) so deriveMenu() can stay a pure, scan-free function —
+// callers that derive many products (getMenu, addOrder) pay the two reads once
+// instead of per product.
+interface MenuCtx {
+  ingById: Map<string, Ingredient>;
+  byProduct: Map<string, { ingredientId: string; qty: number }[]>;
+}
+
+async function loadMenuCtx(): Promise<MenuCtx> {
   const ings = await getIngredients();
-  const stockMap = new Map(ings.map((i) => [i.id, i.stock]));
   const prodRecipes = await db.select().from(recipes).where(eq(recipes.ownerType, "product"));
   const byProduct = new Map<string, { ingredientId: string; qty: number }[]>();
   for (const r of prodRecipes) {
@@ -160,13 +168,17 @@ async function deriveMenu(rows: (typeof products.$inferSelect)[]): Promise<Produ
     arr.push({ ingredientId: r.ingredientId, qty: r.qty });
     byProduct.set(r.ownerId, arr);
   }
+  return { ingById: new Map(ings.map((i) => [i.id, i])), byProduct };
+}
+
+function deriveMenu(rows: (typeof products.$inferSelect)[], ctx: MenuCtx): Product[] {
   return rows.map((r) => {
-    const recipe = byProduct.get(r.id) ?? [];
+    const recipe = ctx.byProduct.get(r.id) ?? [];
     let makeable = UNLIMITED_STOCK;
     if (recipe.length) {
       makeable = Math.min(
         ...recipe.map((ri) => {
-          const s = stockMap.get(ri.ingredientId) ?? 0;
+          const s = ctx.ingById.get(ri.ingredientId)?.stock ?? 0;
           return ri.qty > 0 ? Math.floor(s / ri.qty) : UNLIMITED_STOCK;
         }),
       );
@@ -186,12 +198,12 @@ async function deriveMenu(rows: (typeof products.$inferSelect)[]): Promise<Produ
 
 export async function getMenu(): Promise<Product[]> {
   const rows = await db.select().from(products).orderBy(products.sort);
-  return deriveMenu(rows);
+  return deriveMenu(rows, await loadMenuCtx());
 }
 
 export async function getProduct(id: string): Promise<Product | null> {
   const [r] = await db.select().from(products).where(eq(products.id, id));
-  return r ? (await deriveMenu([r]))[0] : null;
+  return r ? deriveMenu([r], await loadMenuCtx())[0] : null;
 }
 
 export function isOrderable(p: Pick<Product, "available" | "stock">): boolean {
@@ -217,8 +229,7 @@ export async function updateProduct(id: string, patch: Partial<Product>) {
 
 export async function createProduct(p: Omit<Product, "id"> & { id?: string }) {
   const id = p.id || genProductId(p.cat);
-  const rows = await db.select().from(products);
-  const sort = rows.length;
+  const [{ n: sort }] = await db.select({ n: count() }).from(products);
   await db.insert(products).values({
     id, name: p.name, price: p.price, cat: p.cat, g: p.g, grad: p.grad,
     tag: p.tag ?? null, available: p.manualAvailable ?? p.available ?? true, desc: p.desc ?? "", sort,
@@ -258,9 +269,11 @@ export async function getCategories(): Promise<CategoryRow[]> {
 export async function createCategory(name: string): Promise<CategoryRow> {
   const trimmed = name.trim();
   if (!trimmed || trimmed.length > 40) throw new Error("Nama kategori tidak valid (maks 40 karakter)");
-  const existing = await db.select().from(categories);
-  if (existing.some((r) => r.name.toLowerCase() === trimmed.toLowerCase())) throw new Error("Kategori sudah ada");
-  const maxPos = existing.reduce((m, r) => Math.max(m, r.position), 0);
+  const [{ n }] = await db.select({ n: count() }).from(categories)
+    .where(sql`lower(${categories.name}) = lower(${trimmed})`);
+  if (n > 0) throw new Error("Kategori sudah ada");
+  const [{ m }] = await db.select({ m: max(categories.position) }).from(categories);
+  const maxPos = m ?? 0;
   const id = "cat_" + Date.now().toString(36);
   await db.insert(categories).values({ id, name: trimmed, position: maxPos + 1 });
   return { id, name: trimmed, position: maxPos + 1 };
@@ -271,8 +284,9 @@ export async function renameCategory(id: string, newName: string): Promise<void>
   if (!trimmed || trimmed.length > 40) throw new Error("Nama kategori tidak valid (maks 40 karakter)");
   const [cat] = await db.select().from(categories).where(eq(categories.id, id));
   if (!cat) throw new Error("Kategori tidak ditemukan");
-  const others = await db.select().from(categories);
-  if (others.some((r) => r.id !== id && r.name.toLowerCase() === trimmed.toLowerCase())) throw new Error("Nama kategori sudah digunakan");
+  const [{ n }] = await db.select({ n: count() }).from(categories)
+    .where(and(sql`lower(${categories.name}) = lower(${trimmed})`, ne(categories.id, id)));
+  if (n > 0) throw new Error("Nama kategori sudah digunakan");
   const oldName = cat.name;
   await db.update(products).set({ cat: trimmed }).where(eq(products.cat, oldName));
   await db.update(categories).set({ name: trimmed }).where(eq(categories.id, id));
@@ -282,8 +296,8 @@ export async function renameCategory(id: string, newName: string): Promise<void>
 export async function deleteCategory(id: string): Promise<void> {
   const [cat] = await db.select().from(categories).where(eq(categories.id, id));
   if (!cat) throw new Error("Kategori tidak ditemukan");
-  const prods = await db.select().from(products).where(eq(products.cat, cat.name));
-  if (prods.length > 0) throw new Error(`Ada ${prods.length} produk dalam kategori ini. Pindahkan atau hapus produk terlebih dahulu.`);
+  const [{ n }] = await db.select({ n: count() }).from(products).where(eq(products.cat, cat.name));
+  if (n > 0) throw new Error(`Ada ${n} produk dalam kategori ini. Pindahkan atau hapus produk terlebih dahulu.`);
   await db.delete(categories).where(eq(categories.id, id));
 }
 
@@ -299,9 +313,27 @@ function toOrder(o: typeof orders.$inferSelect, items: OrderItem[]): Order {
   };
 }
 
+function toItem(r: typeof orderItems.$inferSelect): OrderItem {
+  return { id: r.productId, name: r.name, price: r.price, qty: r.qty, opts: r.opts };
+}
+
 async function itemsFor(orderId: string): Promise<OrderItem[]> {
   const rows = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
-  return rows.map((r) => ({ id: r.productId, name: r.name, price: r.price, qty: r.qty, opts: r.opts }));
+  return rows.map(toItem);
+}
+
+// Items for many orders in a single query, grouped by orderId — avoids the N+1
+// of calling itemsFor() per order when building a list.
+async function itemsByOrder(orderIds: string[]): Promise<Map<string, OrderItem[]>> {
+  const byOrder = new Map<string, OrderItem[]>();
+  if (!orderIds.length) return byOrder;
+  const rows = await db.select().from(orderItems).where(inArray(orderItems.orderId, orderIds));
+  for (const r of rows) {
+    const arr = byOrder.get(r.orderId) ?? [];
+    arr.push(toItem(r));
+    byOrder.set(r.orderId, arr);
+  }
+  return byOrder;
 }
 
 export type OrderFilter = "all" | "active" | "Menunggu Pembayaran" | "Diproses" | "Selesai";
@@ -315,9 +347,31 @@ export async function getOrders(filter: OrderFilter = "all"): Promise<Order[]> {
   } else {
     rows = await db.select().from(orders).where(eq(orders.status, filter)).orderBy(desc(orders.createdAt));
   }
-  const out: Order[] = [];
-  for (const o of rows) out.push(toOrder(o, await itemsFor(o.id)));
-  return out;
+  return ordersWithItems(rows);
+}
+
+// Build full Orders (with items) for the given order rows, batching the item
+// reads into one query. Shared by the windowed/recent getters below.
+async function ordersWithItems(rows: (typeof orders.$inferSelect)[]): Promise<Order[]> {
+  const items = await itemsByOrder(rows.map((o) => o.id));
+  return rows.map((o) => toOrder(o, items.get(o.id) ?? []));
+}
+
+/** Orders created at/after `start` (epoch ms), newest first. Lets analytics
+ *  load just the window it needs instead of the entire order history. */
+export async function getOrdersSince(start: number): Promise<Order[]> {
+  const rows = await db
+    .select()
+    .from(orders)
+    .where(gte(orders.createdAt, start))
+    .orderBy(desc(orders.createdAt));
+  return ordersWithItems(rows);
+}
+
+/** The `limit` most recent orders, newest first (for "recent activity" lists). */
+export async function getRecentOrders(limit: number): Promise<Order[]> {
+  const rows = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(limit);
+  return ordersWithItems(rows);
 }
 
 export async function getOrder(id: string): Promise<Order | null> {
@@ -326,14 +380,56 @@ export async function getOrder(id: string): Promise<Order | null> {
   return toOrder(o, await itemsFor(id));
 }
 
-async function nextOrderId(): Promise<string> {
-  const rows = await db.select({ id: orders.id }).from(orders);
-  let max = 100;
-  for (const r of rows) {
-    const n = parseInt(String(r.id).replace(/^WB-/, ""), 10);
-    if (!isNaN(n) && n > max) max = n;
+// Either the root db or an open transaction — lets write helpers run inside a
+// caller's transaction so an order's mutations commit (or roll back) together.
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Executor = typeof db | Tx;
+
+function isBusy(e: unknown): boolean {
+  const code = (e as { code?: string })?.code ?? "";
+  const msg = (e as { message?: string })?.message ?? "";
+  return code === "SQLITE_BUSY" || /SQLITE_BUSY|database is locked/i.test(msg);
+}
+
+// Serialize write transactions in-process. The libSQL client multiplexes one
+// connection, which cannot run two interactive transactions at once — concurrent
+// checkouts would otherwise collide with SQLITE_BUSY. Chaining them guarantees
+// one order write commits before the next begins, so id allocation and stock
+// deduction are race-free on a single server.
+let writeChain: Promise<unknown> = Promise.resolve();
+
+async function txWithRetry<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      return await db.transaction(fn);
+    } catch (e) {
+      // SQLITE_BUSY can still occur across separate instances (serverless) where
+      // the in-process chain doesn't apply; back off and retry.
+      if (!isBusy(e)) throw e;
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 15 * 2 ** attempt + Math.random() * 15));
+    }
   }
-  return "WB-" + (max + 1);
+  throw lastErr;
+}
+
+function runWrite<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+  const result = writeChain.then(() => txWithRetry(fn));
+  // Keep the chain alive regardless of this write's outcome.
+  writeChain = result.then(() => {}, () => {});
+  return result;
+}
+
+// Next sequential receipt id ("WB-101", "WB-102", …). The max is computed in SQL
+// (no full-table scan into JS); called inside addOrder's BEGIN IMMEDIATE
+// transaction, the read+insert are serialized so concurrent checkouts can't
+// allocate the same id.
+async function nextOrderId(exec: Executor = db): Promise<string> {
+  const [row] = await exec
+    .select({ max: sql<number>`COALESCE(MAX(CAST(SUBSTR(${orders.id}, 4) AS INTEGER)), 100)` })
+    .from(orders);
+  return "WB-" + ((row?.max ?? 100) + 1);
 }
 
 export interface OrderLineInput {
@@ -362,20 +458,23 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   const groups = await getModifierGroups();
 
-  // Recipes for ingredient deduction (base product + chosen modifier options).
-  const prodRecipes = await db.select().from(recipes).where(eq(recipes.ownerType, "product"));
+  // Ingredient stock + base-product recipes, loaded once and reused below for
+  // availability, stock validation and deduction (instead of re-scanning per line).
+  const ctx = await loadMenuCtx();
+  // Modifier-option recipes (a separate recipe ownerType) for add-on ingredients.
   const optRecipes = await db.select().from(recipes).where(eq(recipes.ownerType, "option"));
-  const byOwner = (rows: typeof prodRecipes) => {
-    const m = new Map<string, { ingredientId: string; qty: number }[]>();
-    for (const r of rows) {
-      const a = m.get(r.ownerId) ?? [];
-      a.push({ ingredientId: r.ingredientId, qty: r.qty });
-      m.set(r.ownerId, a);
-    }
-    return m;
-  };
-  const prodMap = byOwner(prodRecipes);
-  const optMap = byOwner(optRecipes);
+  const optMap = new Map<string, { ingredientId: string; qty: number }[]>();
+  for (const r of optRecipes) {
+    const a = optMap.get(r.ownerId) ?? [];
+    a.push({ ingredientId: r.ingredientId, qty: r.qty });
+    optMap.set(r.ownerId, a);
+  }
+
+  // Resolve every ordered product in a single query, derive availability once.
+  const lineIds = [...new Set(input.lines.map((l) => l.id))];
+  const prodRows = await db.select().from(products).where(inArray(products.id, lineIds));
+  const productById = new Map(deriveMenu(prodRows, ctx).map((p) => [p.id, p]));
+
   const ingNeed = new Map<string, number>();
   const addNeed = (rows: { ingredientId: string; qty: number }[] | undefined, mult: number) => {
     if (!rows) return;
@@ -384,12 +483,12 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   const resolved: OrderItem[] = [];
   for (const line of input.lines) {
-    const p = await getProduct(line.id);
+    const p = productById.get(line.id);
     if (!p) throw new Error(`Menu tidak ditemukan: ${line.id}`);
     if (!isOrderable(p)) throw new Error(`${p.name} sedang habis`);
     const qty = Math.max(1, Math.floor(line.qty || 1));
     // ingredient requirements: base product recipe + each chosen option's recipe
-    addNeed(prodMap.get(p.id), qty);
+    addNeed(ctx.byProduct.get(p.id), qty);
     modGroupsFor(p, groups).forEach((g) => {
       const v = line.sel?.[g.id];
       const ids = typeof v === "string" ? [v] : Array.isArray(v) ? v : [];
@@ -403,9 +502,8 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   // Validate ingredient stock for the whole order up front.
   if (ingNeed.size) {
-    const imap = new Map((await getIngredients()).map((i) => [i.id, i]));
     for (const [ingId, need] of ingNeed) {
-      const ing = imap.get(ingId);
+      const ing = ctx.ingById.get(ingId);
       if (ing && ing.stock < need) {
         throw new Error(`Bahan ${ing.name} tidak cukup (butuh ${need} ${ing.unit}, sisa ${ing.stock})`);
       }
@@ -414,22 +512,18 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
 
   // Discounts + totals computed from server-resolved prices (never trust client).
   const subtotalForDiscount = resolved.reduce((s, i) => s + i.price * i.qty, 0);
-  const categories_ = (await Promise.all(resolved.map(async (it) => {
-    const p = await getProduct(it.id);
-    return p?.cat ?? "";
-  }))).filter(Boolean);
+  const categories_ = [...new Set(resolved.map((it) => productById.get(it.id)?.cat ?? "").filter(Boolean))];
   const totalQty = resolved.reduce((s, i) => s + i.qty, 0);
   const discountResult = await applyDiscounts({
     subtotal: subtotalForDiscount,
     qty: totalQty,
-    categories: [...new Set(categories_)],
+    categories: categories_,
     voucherCode: input.promoCode ?? undefined,
   });
   const promo: Order["promo"] = discountResult.applied.length ? discountResult.applied : null;
   const storeSettings = await getSettings();
   const totals = computeTotals(resolved, discountResult.totalDiscount, storeSettings.serviceFee);
 
-  const id = await nextOrderId();
   const createdAt = Date.now();
   const status = input.status ?? ORDER_STATUS.WAIT_PAY;
   const paid = input.paid ?? false;
@@ -437,30 +531,39 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
     input.note ??
     (input.method === "qris" ? "Menunggu verifikasi kasir" : "Menunggu pembayaran di kasir");
 
-  await db.insert(orders).values({
-    id, table: input.table ?? 0, method: input.method, paid, status,
-    payDetail: input.payDetail ?? null, note,
-    subtotal: totals.subtotal, service: totals.service, discount: totals.discount,
-    total: totals.total, promo, phone: input.phone ?? null, createdAt,
-  });
-  for (const it of resolved) {
-    await db.insert(orderItems).values({
-      id: `${id}-${it.id}-${Math.random().toString(36).slice(2, 7)}`,
-      orderId: id, productId: it.id, name: it.name, price: it.price, qty: it.qty, opts: it.opts,
+  // Persist atomically: id allocation, order, line items, ingredient deduction,
+  // loyalty and redemptions all commit together or roll back together — a failure
+  // mid-way can no longer leave a half-written order or double-spent stock.
+  const id = await runWrite(async (tx) => {
+    const newId = await nextOrderId(tx);
+    await tx.insert(orders).values({
+      id: newId, table: input.table ?? 0, method: input.method, paid, status,
+      payDetail: input.payDetail ?? null, note,
+      subtotal: totals.subtotal, service: totals.service, discount: totals.discount,
+      total: totals.total, promo, phone: input.phone ?? null, createdAt,
     });
-  }
-
-  // Deduct ingredients (this is what makes products go "Habis").
-  if (ingNeed.size) {
-    for (const [ingId, need] of ingNeed) {
-      const [ing] = await db.select().from(ingredients).where(eq(ingredients.id, ingId));
-      if (ing) await db.update(ingredients).set({ stock: Math.max(0, ing.stock - need) }).where(eq(ingredients.id, ingId));
+    if (resolved.length) {
+      await tx.insert(orderItems).values(
+        resolved.map((it) => ({
+          id: `${newId}-${it.id}-${Math.random().toString(36).slice(2, 7)}`,
+          orderId: newId, productId: it.id, name: it.name, price: it.price, qty: it.qty, opts: it.opts,
+        })),
+      );
     }
-    emitChange("menu");
-  }
-  if (input.phone) await recordLoyalty(input.phone, totals.total);
-  await recordRedemptions(discountResult.applied, id);
+    // Deduct ingredients (this is what makes products go "Habis"). Uses the stock
+    // snapshot already loaded in ctx, so no extra read per ingredient.
+    for (const [ingId, need] of ingNeed) {
+      const ing = ctx.ingById.get(ingId);
+      if (ing) await tx.update(ingredients).set({ stock: Math.max(0, ing.stock - need) }).where(eq(ingredients.id, ingId));
+    }
+    if (input.phone) await recordLoyalty(input.phone, totals.total, tx);
+    await recordRedemptions(discountResult.applied, newId, tx);
+    return newId;
+  });
 
+  // Notify listeners only after the commit succeeded.
+  if (ingNeed.size) emitChange("menu");
+  if (input.phone) emitChange("members");
   emitChange("orders");
   return (await getOrder(id))!;
 }
@@ -518,16 +621,18 @@ export async function getMember(phone: string): Promise<Member | null> {
   return m ?? null;
 }
 
-export async function recordLoyalty(phone: string, total: number): Promise<Member> {
-  const existing = await getMember(phone);
+// Caller is responsible for emitChange("members") after the work commits — when
+// run inside addOrder's transaction the notification must wait for the commit.
+export async function recordLoyalty(phone: string, total: number, exec: Executor = db): Promise<Member> {
+  const [existing] = await exec.select().from(members).where(eq(members.phone, phone));
   const points = (existing?.points ?? 0) + Math.floor(total / 1000);
   const stamps = ((existing?.stamps ?? 0) + 1) % 10; // 10-stamp card
   const freeEarned = (existing?.freeEarned ?? 0) + (stamps === 0 ? 1 : 0);
   const visits = (existing?.visits ?? 0) + 1;
   const m: Member = { phone, points, stamps, visits, freeEarned };
-  if (existing) await db.update(members).set(m).where(eq(members.phone, phone));
-  else await db.insert(members).values(m);
-  emitChange("members");
+  if (existing) await exec.update(members).set(m).where(eq(members.phone, phone));
+  else await exec.insert(members).values(m);
+  if (exec === db) emitChange("members");
   return m;
 }
 
@@ -711,11 +816,11 @@ export async function getAutoDiscounts(params: {
   return result.applied;
 }
 
-async function recordRedemptions(applied: AppliedDiscount[], orderId: string): Promise<void> {
+async function recordRedemptions(applied: AppliedDiscount[], orderId: string, exec: Executor = db): Promise<void> {
   if (!applied.length) return;
   const now = Date.now();
   for (const a of applied) {
-    await db.insert(redemptions).values({
+    await exec.insert(redemptions).values({
       id: `rdm_${now}_${a.id}`,
       promotionId: a.id,
       orderId,
@@ -723,9 +828,9 @@ async function recordRedemptions(applied: AppliedDiscount[], orderId: string): P
       redeemedAt: now,
     });
     // Increment usedCount for vouchers only
-    const [promo] = await db.select().from(promotions).where(eq(promotions.id, a.id));
+    const [promo] = await exec.select().from(promotions).where(eq(promotions.id, a.id));
     if (promo?.kind === "voucher") {
-      await db.update(promotions).set({ usedCount: promo.usedCount + 1 }).where(eq(promotions.id, a.id));
+      await exec.update(promotions).set({ usedCount: promo.usedCount + 1 }).where(eq(promotions.id, a.id));
     }
   }
 }

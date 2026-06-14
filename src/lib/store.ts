@@ -2,7 +2,7 @@
 // settings. The server analog of design-reference/warbul.js. Route handlers
 // (Phase 1) build HTTP/validation/auth on top of these functions.
 import "server-only";
-import { and, desc, eq, ne, gte, inArray } from "drizzle-orm";
+import { and, desc, eq, ne, gte, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { products, orders, orderItems, members, settings, modifierGroups, modifierOptions, ingredients, recipes, categories, promotions, redemptions } from "@/db/schema";
 import { computeTotals } from "./pricing";
@@ -378,14 +378,56 @@ export async function getOrder(id: string): Promise<Order | null> {
   return toOrder(o, await itemsFor(id));
 }
 
-async function nextOrderId(): Promise<string> {
-  const rows = await db.select({ id: orders.id }).from(orders);
-  let max = 100;
-  for (const r of rows) {
-    const n = parseInt(String(r.id).replace(/^WB-/, ""), 10);
-    if (!isNaN(n) && n > max) max = n;
+// Either the root db or an open transaction — lets write helpers run inside a
+// caller's transaction so an order's mutations commit (or roll back) together.
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type Executor = typeof db | Tx;
+
+function isBusy(e: unknown): boolean {
+  const code = (e as { code?: string })?.code ?? "";
+  const msg = (e as { message?: string })?.message ?? "";
+  return code === "SQLITE_BUSY" || /SQLITE_BUSY|database is locked/i.test(msg);
+}
+
+// Serialize write transactions in-process. The libSQL client multiplexes one
+// connection, which cannot run two interactive transactions at once — concurrent
+// checkouts would otherwise collide with SQLITE_BUSY. Chaining them guarantees
+// one order write commits before the next begins, so id allocation and stock
+// deduction are race-free on a single server.
+let writeChain: Promise<unknown> = Promise.resolve();
+
+async function txWithRetry<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    try {
+      return await db.transaction(fn);
+    } catch (e) {
+      // SQLITE_BUSY can still occur across separate instances (serverless) where
+      // the in-process chain doesn't apply; back off and retry.
+      if (!isBusy(e)) throw e;
+      lastErr = e;
+      await new Promise((r) => setTimeout(r, 15 * 2 ** attempt + Math.random() * 15));
+    }
   }
-  return "WB-" + (max + 1);
+  throw lastErr;
+}
+
+function runWrite<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+  const result = writeChain.then(() => txWithRetry(fn));
+  // Keep the chain alive regardless of this write's outcome.
+  writeChain = result.then(() => {}, () => {});
+  return result;
+}
+
+// Next sequential receipt id ("WB-101", "WB-102", …). The max is computed in SQL
+// (no full-table scan into JS); called inside addOrder's BEGIN IMMEDIATE
+// transaction, the read+insert are serialized so concurrent checkouts can't
+// allocate the same id.
+async function nextOrderId(exec: Executor = db): Promise<string> {
+  const [row] = await exec
+    .select({ max: sql<number>`COALESCE(MAX(CAST(SUBSTR(${orders.id}, 4) AS INTEGER)), 100)` })
+    .from(orders);
+  return "WB-" + ((row?.max ?? 100) + 1);
 }
 
 export interface OrderLineInput {
@@ -480,7 +522,6 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
   const storeSettings = await getSettings();
   const totals = computeTotals(resolved, discountResult.totalDiscount, storeSettings.serviceFee);
 
-  const id = await nextOrderId();
   const createdAt = Date.now();
   const status = input.status ?? ORDER_STATUS.WAIT_PAY;
   const paid = input.paid ?? false;
@@ -488,31 +529,39 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
     input.note ??
     (input.method === "qris" ? "Menunggu verifikasi kasir" : "Menunggu pembayaran di kasir");
 
-  await db.insert(orders).values({
-    id, table: input.table ?? 0, method: input.method, paid, status,
-    payDetail: input.payDetail ?? null, note,
-    subtotal: totals.subtotal, service: totals.service, discount: totals.discount,
-    total: totals.total, promo, phone: input.phone ?? null, createdAt,
-  });
-  for (const it of resolved) {
-    await db.insert(orderItems).values({
-      id: `${id}-${it.id}-${Math.random().toString(36).slice(2, 7)}`,
-      orderId: id, productId: it.id, name: it.name, price: it.price, qty: it.qty, opts: it.opts,
+  // Persist atomically: id allocation, order, line items, ingredient deduction,
+  // loyalty and redemptions all commit together or roll back together — a failure
+  // mid-way can no longer leave a half-written order or double-spent stock.
+  const id = await runWrite(async (tx) => {
+    const newId = await nextOrderId(tx);
+    await tx.insert(orders).values({
+      id: newId, table: input.table ?? 0, method: input.method, paid, status,
+      payDetail: input.payDetail ?? null, note,
+      subtotal: totals.subtotal, service: totals.service, discount: totals.discount,
+      total: totals.total, promo, phone: input.phone ?? null, createdAt,
     });
-  }
-
-  // Deduct ingredients (this is what makes products go "Habis"). Uses the stock
-  // snapshot already loaded in ctx, so no extra read per ingredient.
-  if (ingNeed.size) {
+    if (resolved.length) {
+      await tx.insert(orderItems).values(
+        resolved.map((it) => ({
+          id: `${newId}-${it.id}-${Math.random().toString(36).slice(2, 7)}`,
+          orderId: newId, productId: it.id, name: it.name, price: it.price, qty: it.qty, opts: it.opts,
+        })),
+      );
+    }
+    // Deduct ingredients (this is what makes products go "Habis"). Uses the stock
+    // snapshot already loaded in ctx, so no extra read per ingredient.
     for (const [ingId, need] of ingNeed) {
       const ing = ctx.ingById.get(ingId);
-      if (ing) await db.update(ingredients).set({ stock: Math.max(0, ing.stock - need) }).where(eq(ingredients.id, ingId));
+      if (ing) await tx.update(ingredients).set({ stock: Math.max(0, ing.stock - need) }).where(eq(ingredients.id, ingId));
     }
-    emitChange("menu");
-  }
-  if (input.phone) await recordLoyalty(input.phone, totals.total);
-  await recordRedemptions(discountResult.applied, id);
+    if (input.phone) await recordLoyalty(input.phone, totals.total, tx);
+    await recordRedemptions(discountResult.applied, newId, tx);
+    return newId;
+  });
 
+  // Notify listeners only after the commit succeeded.
+  if (ingNeed.size) emitChange("menu");
+  if (input.phone) emitChange("members");
   emitChange("orders");
   return (await getOrder(id))!;
 }
@@ -570,16 +619,18 @@ export async function getMember(phone: string): Promise<Member | null> {
   return m ?? null;
 }
 
-export async function recordLoyalty(phone: string, total: number): Promise<Member> {
-  const existing = await getMember(phone);
+// Caller is responsible for emitChange("members") after the work commits — when
+// run inside addOrder's transaction the notification must wait for the commit.
+export async function recordLoyalty(phone: string, total: number, exec: Executor = db): Promise<Member> {
+  const [existing] = await exec.select().from(members).where(eq(members.phone, phone));
   const points = (existing?.points ?? 0) + Math.floor(total / 1000);
   const stamps = ((existing?.stamps ?? 0) + 1) % 10; // 10-stamp card
   const freeEarned = (existing?.freeEarned ?? 0) + (stamps === 0 ? 1 : 0);
   const visits = (existing?.visits ?? 0) + 1;
   const m: Member = { phone, points, stamps, visits, freeEarned };
-  if (existing) await db.update(members).set(m).where(eq(members.phone, phone));
-  else await db.insert(members).values(m);
-  emitChange("members");
+  if (existing) await exec.update(members).set(m).where(eq(members.phone, phone));
+  else await exec.insert(members).values(m);
+  if (exec === db) emitChange("members");
   return m;
 }
 
@@ -763,11 +814,11 @@ export async function getAutoDiscounts(params: {
   return result.applied;
 }
 
-async function recordRedemptions(applied: AppliedDiscount[], orderId: string): Promise<void> {
+async function recordRedemptions(applied: AppliedDiscount[], orderId: string, exec: Executor = db): Promise<void> {
   if (!applied.length) return;
   const now = Date.now();
   for (const a of applied) {
-    await db.insert(redemptions).values({
+    await exec.insert(redemptions).values({
       id: `rdm_${now}_${a.id}`,
       promotionId: a.id,
       orderId,
@@ -775,9 +826,9 @@ async function recordRedemptions(applied: AppliedDiscount[], orderId: string): P
       redeemedAt: now,
     });
     // Increment usedCount for vouchers only
-    const [promo] = await db.select().from(promotions).where(eq(promotions.id, a.id));
+    const [promo] = await exec.select().from(promotions).where(eq(promotions.id, a.id));
     if (promo?.kind === "voucher") {
-      await db.update(promotions).set({ usedCount: promo.usedCount + 1 }).where(eq(promotions.id, a.id));
+      await exec.update(promotions).set({ usedCount: promo.usedCount + 1 }).where(eq(promotions.id, a.id));
     }
   }
 }

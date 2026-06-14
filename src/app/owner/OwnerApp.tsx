@@ -164,6 +164,8 @@ function OwnerStyles() {
       .owner-navitem.on{background:var(--gold);color:var(--coffee-900);font-weight:700}
 
       .owner-card{background:#fff;border:1px solid var(--cream-200);border-radius:20px}
+      .owner-grid2{min-width:0}
+      .owner-grid2>*{min-width:0}
       .owner-kpi{padding:20px 22px;position:relative;overflow:hidden}
       .owner-delta{font-size:12px;font-weight:800;padding:3px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:3px}
       .owner-delta.up{color:var(--green-ok);background:var(--green-ok-bg)}

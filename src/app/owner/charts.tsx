@@ -62,6 +62,10 @@ export function AreaChart({ points }: { points: TrendPoint[] }): JSX.Element {
   // re-animate when the period (labels) or the curve changes
   const armed = useArmed(points.map((p) => p.label).join("|") + "#" + line);
 
+  // Thin the x-axis labels so a dense series (e.g. 14 hourly points for "today")
+  // never overflows a phone-width card. Sparse series (≤7) keep every label.
+  const labelStep = Math.max(1, Math.ceil(n / 7));
+
   return (
     <>
       <svg
@@ -69,7 +73,7 @@ export function AreaChart({ points }: { points: TrendPoint[] }): JSX.Element {
         width="100%"
         height="210"
         preserveAspectRatio="none"
-        style={{ marginTop: 14, overflow: "visible" }}
+        style={{ marginTop: 14, overflow: "hidden", maxWidth: "100%" }}
       >
         <defs>
           <linearGradient id="ownerArea" x1="0" y1="0" x2="0" y2="1">
@@ -155,11 +159,14 @@ export function AreaChart({ points }: { points: TrendPoint[] }): JSX.Element {
           fontSize: 11.5,
           color: "#a99c86",
           fontWeight: 600,
+          overflow: "hidden",
         }}
       >
-        {points.map((p, i) => (
-          <span key={i}>{p.label}</span>
-        ))}
+        {points
+          .filter((_, i) => i % labelStep === 0)
+          .map((p, i) => (
+            <span key={i} style={{ whiteSpace: "nowrap" }}>{p.label}</span>
+          ))}
       </div>
     </>
   );
@@ -191,8 +198,8 @@ export function Donut({
 
   let off = 0;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 16 }}>
-      <svg width="160" height="160" viewBox="0 0 160 160">
+    <div style={{ display: "flex", alignItems: "center", gap: 18, marginTop: 16, flexWrap: "wrap" }}>
+      <svg width="160" height="160" viewBox="0 0 160 160" style={{ flexShrink: 0 }}>
         <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--cream-200)" strokeWidth="20" />
         {total > 0 &&
           segs.map((s, i) => {
@@ -234,7 +241,7 @@ export function Donut({
           {total}
         </text>
       </svg>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14 }}>
+      <div style={{ flex: "1 1 150px", minWidth: 0, display: "flex", flexDirection: "column", gap: 14 }}>
         {segs.map((s) => (
           <div key={s.l}>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

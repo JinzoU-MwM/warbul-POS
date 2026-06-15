@@ -1,9 +1,10 @@
 "use client";
 // Thermal receipt content (#rcpt is required — globals.css scopes @media print to it)
 // plus a modal wrapper with Tutup / Cetak Struk actions.
-import { useState, type JSX } from "react";
+import { useState, useEffect, type JSX } from "react";
 import type { Order, StoreSettings } from "@/lib/types";
 import { rupiah } from "@/lib/constants";
+import { getSettings, getPublicConfig } from "@/lib/api";
 import {
   printReceiptViaRawBT,
   getPaperWidth,
@@ -36,7 +37,7 @@ function RcptRow({ k, v }: { k: string; v: string }): JSX.Element {
 
 export interface ReceiptProps {
   order: Order;
-  settings?: StoreSettings | null;
+  settings?: Partial<StoreSettings> | null;
   cashierName?: string;
 }
 
@@ -149,11 +150,34 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
   const [printErr, setPrintErr] = useState("");
   const [devices, setDevices] = useState<BtDevice[] | null>(null);
 
+  // The receipt only needs storeName + address from settings. When the caller
+  // doesn't pass them, load them here: authenticated store settings for the
+  // cashier, falling back to the public config slice for anonymous customers.
+  // (Without this the receipt showed the hardcoded default store name/address.)
+  const [loaded, setLoaded] = useState<Partial<StoreSettings> | null>(settings ?? null);
+  useEffect(() => {
+    if (settings) { setLoaded(settings); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const full = await getSettings();
+        if (alive) setLoaded(full);
+      } catch {
+        try {
+          const pub = await getPublicConfig();
+          if (alive) setLoaded(pub);
+        } catch {}
+      }
+    })();
+    return () => { alive = false; };
+  }, [settings]);
+  const effSettings = settings ?? loaded;
+
   const nativePrint = async () => {
     setBusy(true);
     setPrintErr("");
     try {
-      await printReceiptNative(order, settings, cashierName);
+      await printReceiptNative(order, effSettings, cashierName);
       setDevices(null);
     } catch (e) {
       if (e instanceof NoPrinterError) {
@@ -182,7 +206,7 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
       void nativePrint();
       return;
     }
-    if (!printReceiptViaRawBT(order, settings, cashierName)) window.print();
+    if (!printReceiptViaRawBT(order, effSettings, cashierName)) window.print();
   };
   // Paper width is per-device (persisted), so a cashier picks it once.
   const [paper, setPaper] = useState<PaperWidth>(getPaperWidth());
@@ -226,7 +250,7 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
           flexDirection: "column",
         }}
       >
-        <Receipt order={order} settings={settings} cashierName={cashierName} />
+        <Receipt order={order} settings={effSettings} cashierName={cashierName} />
 
         {printErr && (
           <div

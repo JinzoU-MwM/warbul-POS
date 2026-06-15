@@ -11,6 +11,8 @@ export async function GET() {
     const s = await getSettings();
     return NextResponse.json({
       storeName: s.storeName,
+      branch: s.branch,
+      address: s.address,
       serviceFee: s.serviceFee,
       payQris: s.payQris,
       payKasir: s.payKasir,

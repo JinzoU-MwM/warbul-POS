@@ -121,6 +121,15 @@ async function main() {
   `);
   console.log("✓ redemptions table ready");
 
+  /* ── products.image (optional product photo, e.g. a Google Drive link) ── */
+  const { rows: prodCols } = await db.execute(`PRAGMA table_info(products)`);
+  if (prodCols.length && !prodCols.some((c) => c.name === "image")) {
+    await db.execute(`ALTER TABLE products ADD COLUMN image TEXT`);
+    console.log("✓ added products.image column");
+  } else {
+    console.log("• products.image column already present");
+  }
+
   /* ── indexes (speed up hot lookups; FKs are NOT auto-indexed in SQLite) ── */
   // Names match the Drizzle schema so `drizzle-kit push` and this script agree.
   const INDEXES = [

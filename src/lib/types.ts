@@ -18,6 +18,7 @@ export interface Product {
   stock: number; // DERIVED: max servings makeable from ingredients (UNLIMITED_STOCK if no recipe)
   hasRecipe?: boolean;
   desc: string;
+  image?: string | null; // optional product photo (raw link, e.g. a Google Drive share URL)
 }
 
 // Raw material / ingredient.

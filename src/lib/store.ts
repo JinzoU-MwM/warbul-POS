@@ -187,7 +187,7 @@ function deriveMenu(rows: (typeof products.$inferSelect)[], ctx: MenuCtx): Produ
     const manual = r.available;
     return {
       id: r.id, name: r.name, price: r.price, cat: r.cat as Product["cat"], g: r.g as Product["g"],
-      grad: r.grad, tag: r.tag, desc: r.desc,
+      grad: r.grad, tag: r.tag, desc: r.desc, image: r.image ?? null,
       manualAvailable: manual,
       available: manual && makeable > 0,
       stock: makeable,
@@ -220,6 +220,7 @@ export async function updateProduct(id: string, patch: Partial<Product>) {
   if (Array.isArray(patch.grad)) data.grad = patch.grad;
   if ("tag" in patch) data.tag = patch.tag ?? null;
   if (typeof patch.desc === "string") data.desc = patch.desc;
+  if ("image" in patch) data.image = patch.image ?? null;
   if (typeof patch.available === "boolean") data.available = patch.available;
   if (typeof patch.manualAvailable === "boolean") data.available = patch.manualAvailable;
   if (Object.keys(data).length) await db.update(products).set(data).where(eq(products.id, id));
@@ -232,7 +233,8 @@ export async function createProduct(p: Omit<Product, "id"> & { id?: string }) {
   const [{ n: sort }] = await db.select({ n: count() }).from(products);
   await db.insert(products).values({
     id, name: p.name, price: p.price, cat: p.cat, g: p.g, grad: p.grad,
-    tag: p.tag ?? null, available: p.manualAvailable ?? p.available ?? true, desc: p.desc ?? "", sort,
+    tag: p.tag ?? null, available: p.manualAvailable ?? p.available ?? true, desc: p.desc ?? "",
+    image: p.image ?? null, sort,
   });
   emitChange("menu");
   return getProduct(id);

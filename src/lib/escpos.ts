@@ -119,7 +119,7 @@ class EscPos {
 
 export function buildReceiptEscPos(
   order: Order,
-  settings?: StoreSettings | null,
+  settings?: Partial<StoreSettings> | null,
   cashierName?: string,
   cols: number = paperCols(),
 ): Uint8Array {
@@ -217,7 +217,7 @@ function launchIntent(url: string): void {
  */
 export function printReceiptViaRawBT(
   order: Order,
-  settings?: StoreSettings | null,
+  settings?: Partial<StoreSettings> | null,
   cashierName?: string,
 ): boolean {
   if (!isAndroid()) return false;
@@ -316,7 +316,7 @@ export async function listPairedPrinters(): Promise<BtDevice[]> {
  */
 export async function printReceiptNative(
   order: Order,
-  settings?: StoreSettings | null,
+  settings?: Partial<StoreSettings> | null,
   cashierName?: string,
 ): Promise<void> {
   const addr = getPrinterAddr();

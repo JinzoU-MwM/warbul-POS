@@ -37,6 +37,9 @@ function clockStr(): string {
 export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
   const [orders, setOrders] = useState<Order[]>([]);
   const [sel, setSel] = useState<string | null>(null);
+  // On mobile we show one pane at a time: null = order list, set = that order's
+  // detail (full screen). On desktop both panes show, so this only gates mobile.
+  const [openId, setOpenId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterKey>("active");
   const [, setTick] = useState(0);
 
@@ -114,7 +117,7 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
         </div>
       </header>
 
-      <div className="ordersplit" style={{ flex: 1, display: "flex", minHeight: 0 }}>
+      <div className="ordersplit" data-detailopen={openId ? "1" : "0"} style={{ flex: 1, display: "flex", minHeight: 0 }}>
         {/* list */}
         <div className="orderlist" style={{ width: 374, borderRight: "1px solid var(--line)", display: "flex", flexDirection: "column", minHeight: 0 }}>
           <div style={{ display: "flex", gap: 7, padding: "14px 18px", overflowX: "auto", flex: "0 0 auto" }}>
@@ -151,7 +154,7 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
               return (
                 <div
                   key={o.id}
-                  onClick={() => setSel(o.id)}
+                  onClick={() => { setSel(o.id); setOpenId(o.id); }}
                   className={isNew ? "ov-inpop" : undefined}
                   style={{
                     cursor: "pointer",
@@ -199,6 +202,9 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
 
         {/* detail */}
         <div className="orderdetail" style={{ flex: 1, minWidth: 0, overflowY: "auto", background: "var(--paper)" }}>
+          <button type="button" className="ov-backbar" onClick={() => setOpenId(null)}>
+            <span style={{ fontSize: 18, lineHeight: 1, marginTop: -1 }}>‹</span> Daftar pesanan
+          </button>
           {selected ? (
             <OrderDetail key={selected.id} order={selected} cashierName={cashierName} onPatch={handlePatch} />
           ) : (
@@ -222,9 +228,23 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
         @keyframes ov-inpop{from{transform:translateY(-8px) scale(.98);opacity:0}}
         @keyframes ov-glow{0%,100%{box-shadow:var(--shadow-sm)}50%{box-shadow:0 0 0 4px rgba(221,138,62,.25)}}
         @keyframes ov-glowdot{0%,100%{box-shadow:0 0 0 0 rgba(62,124,83,.0)}50%{box-shadow:0 0 0 4px rgba(62,124,83,.25)}}
+        .ov-scope .ov-backbar{display:none}
         @media(max-width:860px){
           .ov-scope .ordersplit{flex-direction:column}
-          .ov-scope .orderlist{width:100%!important;border-right:none!important;border-bottom:1px solid var(--line);max-height:42%}
+          /* full-height list, no longer a cramped 42% strip */
+          .ov-scope .orderlist{width:100%!important;border-right:none!important;max-height:none;flex:1}
+          /* show ONE pane at a time: list by default, detail once an order is opened */
+          /* !important to beat the inline display on .orderlist */
+          .ov-scope .ordersplit[data-detailopen="0"] .orderdetail{display:none!important}
+          .ov-scope .ordersplit[data-detailopen="1"] .orderlist{display:none!important}
+          .ov-scope .ov-backbar{
+            display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:5;width:100%;
+            padding:13px 16px;background:var(--paper-2);border:none;border-bottom:1px solid var(--line);
+            font-family:inherit;font-size:14.5px;font-weight:700;color:var(--green-800);cursor:pointer;
+          }
+          .ov-scope > header{padding:16px 18px!important}
+          .ov-scope .orderlist > div:first-child{padding:12px 16px!important}
+          .od-scope{padding:18px 16px 32px!important}
         }
       `}</style>
     </div>

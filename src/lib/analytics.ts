@@ -3,6 +3,7 @@
 // produces NaN or Infinity.
 import "server-only";
 import { getOrdersSince, getRecentOrders, getMenu } from "./store";
+import { startOfStoreDay as startOfToday, storeIsoDate as isoDate, storeDayOfWeek as tzDay } from "./tz";
 import { ORDER_STATUS } from "./constants";
 import type { Order, Product } from "./types";
 
@@ -95,11 +96,8 @@ export interface SalesReport {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DAY_NAMES = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-// Store timezone: WIB / Asia/Jakarta (UTC+7, no DST). Report windows are aligned
-// to the store's local calendar day, NOT the server's (UTC on Vercel) — otherwise
-// orders placed 00:00–07:00 WIB land in the previous day and disagree with the
-// Pesanan list, which shows timestamps in the viewer's (WIB) timezone.
-const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
+// Day windows + labels are computed in the store timezone (see ./tz) so reports
+// align to the store's calendar day, not the server's (UTC on Vercel).
 
 function pctDelta(current: number, prev: number): number {
   if (prev === 0) return 0;
@@ -108,25 +106,6 @@ function pctDelta(current: number, prev: number): number {
 
 function isQris(o: Order): boolean {
   return o.method === "qris";
-}
-
-// Midnight of the store-local (WIB) day containing `now`, as absolute epoch ms.
-function startOfToday(now = Date.now()): number {
-  return Math.floor((now + TZ_OFFSET_MS) / DAY_MS) * DAY_MS - TZ_OFFSET_MS;
-}
-
-// yyyy-mm-dd of `ts` in the store timezone (WIB).
-function isoDate(ts: number): string {
-  const d = new Date(ts + TZ_OFFSET_MS); // shift so the UTC getters read the WIB clock
-  const y = d.getUTCFullYear();
-  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-// Day of week (0=Minggu) of `ts` in the store timezone (WIB).
-function tzDay(ts: number): number {
-  return new Date(ts + TZ_OFFSET_MS).getUTCDay();
 }
 
 function emptyMix(): PaymentMix {

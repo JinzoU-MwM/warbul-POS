@@ -1,8 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { getSettings } from "@/lib/api";
+import { useLive } from "@/lib/use-live";
 import { Icons } from "@/components";
 import { NewOrderAlarm } from "@/components/NewOrderAlarm";
 import { OverviewView } from "./OverviewView";
@@ -38,6 +40,12 @@ const NAV: NavItem[] = [
 export function OwnerApp({ user }: { user: OwnerUser }) {
   const router = useRouter();
   const [view, setView] = useState<OwnerView>("overview");
+
+  // Show the live branch from settings (was hardcoded). Refreshes when settings change.
+  const [branch, setBranch] = useState("");
+  const loadBranch = () => { getSettings().then((s) => setBranch(s.branch)).catch(() => {}); };
+  useEffect(loadBranch, []);
+  useLive(["settings"], loadBranch);
 
   const initials = user.name
     .split(/\s+/)
@@ -78,7 +86,7 @@ export function OwnerApp({ user }: { user: OwnerUser }) {
         <div className="owner-branchbox owner-brand-text">
           <div style={{ fontSize: 11, color: "rgba(244,237,217,.55)", fontWeight: 600 }}>CABANG</div>
           <div style={{ color: "var(--cream)", fontWeight: 700, fontSize: 13.5, marginTop: 2 }}>
-            Dipatiukur, Bandung
+            {branch || "—"}
           </div>
         </div>
 

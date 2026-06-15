@@ -67,6 +67,9 @@ export const products = sqliteTable("products", {
   // ingredients to be in stock (derived at read time).
   available: integer("available", { mode: "boolean" }).notNull().default(true),
   desc: text("desc").notNull().default(""),
+  // Optional product photo. Stores the raw link the owner pasted (typically a
+  // Google Drive share URL); normalized to an embeddable URL at render time.
+  image: text("image"),
   sort: integer("sort").notNull().default(0), // preserve seed display order
 }, (t) => [index("products_cat_idx").on(t.cat)]);
 

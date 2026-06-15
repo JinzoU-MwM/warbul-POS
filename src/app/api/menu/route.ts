@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       available: body.available ?? true,
       stock: typeof body.stock === "number" ? body.stock : 0,
       desc: body.desc ?? "",
+      image: typeof body.image === "string" ? body.image : null,
     });
 
     return NextResponse.json({ product }, { status: 201 });

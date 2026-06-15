@@ -16,6 +16,7 @@ const PATCHABLE = [
   "available",
   "stock",
   "desc",
+  "image",
 ] as const;
 
 export async function PATCH(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {

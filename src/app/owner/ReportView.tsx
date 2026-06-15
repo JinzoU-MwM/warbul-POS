@@ -112,10 +112,50 @@ export function ReportView() {
               ))}
             </div>
 
-            <div className="owner-card" style={{ marginTop: 18, padding: "20px 22px" }}>
+            <div className="owner-card rpt-daily" style={{ marginTop: 18, padding: "20px 22px" }}>
               <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Rincian Harian</div>
               <div style={{ fontSize: 12.5, color: "#8b7f6c", marginBottom: 8 }}>{noteRange}</div>
-              <div style={{ overflowX: "auto" }}>
+
+              {/* Phones: one card per day so the income figures (esp. BERSIH) are
+                  readable without sideways-scrolling a wide table. */}
+              <div className="rpt-cards">
+                {report.daily.map((r) => (
+                  <div key={r.date} className="rpt-daycard">
+                    <div className="rpt-daycard-top">
+                      <div>
+                        <div style={{ fontWeight: 700 }}>{r.label}</div>
+                        <div style={{ fontSize: 11.5, color: "#a99c86" }}>{fmtDate(r.date)}</div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 10.5, color: "#a99c86", fontWeight: 700, letterSpacing: ".03em" }}>BERSIH</div>
+                        <span className="num" style={{ fontSize: 17, color: "var(--coffee)" }}>{rupiah(r.net)}</span>
+                      </div>
+                    </div>
+                    <div className="rpt-daycard-sub">
+                      <span>{r.orders} pesanan</span>
+                      <span>Kotor {rupiah(r.gross)}</span>
+                      {r.discount > 0 && <span style={{ color: "var(--orange-600)" }}>Diskon −{rupiah(r.discount)}</span>}
+                    </div>
+                  </div>
+                ))}
+                <div className="rpt-daycard rpt-daycard-total">
+                  <div className="rpt-daycard-top">
+                    <div style={{ fontWeight: 800 }}>Total · {noteRange}</div>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 10.5, color: "#a99c86", fontWeight: 700, letterSpacing: ".03em" }}>BERSIH</div>
+                      <span className="num" style={{ fontSize: 18, color: "var(--coffee)" }}>{rupiah(tot.net)}</span>
+                    </div>
+                  </div>
+                  <div className="rpt-daycard-sub">
+                    <span>{tot.orders} pesanan</span>
+                    <span>Kotor {rupiah(tot.gross)}</span>
+                    {tot.discount > 0 && <span style={{ color: "var(--orange-600)" }}>Diskon −{rupiah(tot.discount)}</span>}
+                  </div>
+                </div>
+              </div>
+
+              {/* Wider screens: full table */}
+              <div className="rpt-tablewrap" style={{ overflowX: "auto" }}>
                 <table className="owner-table" style={{ minWidth: 580 }}>
                   <thead>
                     <tr>
@@ -153,6 +193,18 @@ export function ReportView() {
                   </tbody>
                 </table>
               </div>
+
+              <style>{`
+                .rpt-cards{display:none}
+                @media(max-width:768px){
+                  .rpt-daily .rpt-tablewrap{display:none}
+                  .rpt-daily .rpt-cards{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+                  .rpt-daycard{border:1px solid var(--line,#E6DBC4);border-radius:14px;padding:12px 14px;background:#fff}
+                  .rpt-daycard-total{border:1.5px solid var(--green-800)}
+                  .rpt-daycard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+                  .rpt-daycard-sub{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line,#E6DBC4);font-size:12.5px;color:#6f6353}
+                }
+              `}</style>
             </div>
 
             <PaymentSummary report={report} />

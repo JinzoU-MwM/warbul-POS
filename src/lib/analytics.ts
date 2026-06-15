@@ -95,6 +95,11 @@ export interface SalesReport {
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const DAY_NAMES = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+// Store timezone: WIB / Asia/Jakarta (UTC+7, no DST). Report windows are aligned
+// to the store's local calendar day, NOT the server's (UTC on Vercel) — otherwise
+// orders placed 00:00–07:00 WIB land in the previous day and disagree with the
+// Pesanan list, which shows timestamps in the viewer's (WIB) timezone.
+const TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 function pctDelta(current: number, prev: number): number {
   if (prev === 0) return 0;
@@ -105,18 +110,23 @@ function isQris(o: Order): boolean {
   return o.method === "qris";
 }
 
+// Midnight of the store-local (WIB) day containing `now`, as absolute epoch ms.
 function startOfToday(now = Date.now()): number {
-  const d = new Date(now);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
+  return Math.floor((now + TZ_OFFSET_MS) / DAY_MS) * DAY_MS - TZ_OFFSET_MS;
 }
 
+// yyyy-mm-dd of `ts` in the store timezone (WIB).
 function isoDate(ts: number): string {
-  const d = new Date(ts);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
+  const d = new Date(ts + TZ_OFFSET_MS); // shift so the UTC getters read the WIB clock
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(d.getUTCDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
+}
+
+// Day of week (0=Minggu) of `ts` in the store timezone (WIB).
+function tzDay(ts: number): number {
+  return new Date(ts + TZ_OFFSET_MS).getUTCDay();
 }
 
 function emptyMix(): PaymentMix {
@@ -200,7 +210,7 @@ function buildTrend(orders: Order[], range: SummaryRange, w: WindowDef, now = Da
       const value = paid
         .filter((o) => o.createdAt >= dayStart && o.createdAt < dayEnd)
         .reduce((s, o) => s + o.total, 0);
-      points.push({ label: DAY_NAMES[new Date(dayStart).getDay()], value });
+      points.push({ label: DAY_NAMES[tzDay(dayStart)], value });
     }
     return points;
   }
@@ -343,7 +353,7 @@ export async function computeReport(range: ReportRange, now = Date.now()): Promi
 
     daily.push({
       date: isoDate(dayStart),
-      label: DAY_NAMES[new Date(dayStart).getDay()],
+      label: DAY_NAMES[tzDay(dayStart)],
       orders: inDay.length,
       gross,
       discount,

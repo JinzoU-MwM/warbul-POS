@@ -8,6 +8,7 @@ import { products, orders, orderItems, members, settings, modifierGroups, modifi
 import { computeTotals } from "./pricing";
 import { unitPrice, modSummary, modGroupsFor, DEFAULT_MODIFIER_GROUPS } from "./modifiers";
 import { ORDER_STATUS } from "./constants";
+import { storeMinutesOfDay } from "./tz";
 import { emitChange } from "./events";
 import { DEFAULT_SETTINGS } from "./store-defaults";
 import { UNLIMITED_STOCK } from "./types";
@@ -752,8 +753,9 @@ export async function applyDiscounts(params: {
   voucherCode?: string;
 }): Promise<{ applied: AppliedDiscount[]; totalDiscount: number }> {
   const { subtotal, qty, categories, voucherCode } = params;
-  const now = new Date();
-  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  // Store-local minutes-of-day so time-window promos match the owner's WIB clock,
+  // not the server's UTC clock.
+  const nowMinutes = storeMinutesOfDay();
 
   const all = await getPromotions();
   const candidates: Array<Promotion & { _amount: number }> = [];

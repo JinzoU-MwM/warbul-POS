@@ -170,6 +170,10 @@ export async function getConfig(): Promise<PublicConfig> {
 export async function getSettings(): Promise<StoreSettings> {
   return (await j<{ settings: StoreSettings }>(await fetch("/api/settings", { cache: "no-store" }))).settings;
 }
+/** Public, customer-safe slice of store settings (no auth required). */
+export async function getPublicConfig(): Promise<Partial<StoreSettings>> {
+  return j<Partial<StoreSettings>>(await fetch("/api/config", { cache: "no-store" }));
+}
 export async function patchSettings(patch: Partial<StoreSettings>): Promise<StoreSettings> {
   return (await j<{ settings: StoreSettings }>(await fetch("/api/settings", {
     method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(patch),

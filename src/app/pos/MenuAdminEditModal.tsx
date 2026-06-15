@@ -163,6 +163,7 @@ export function MenuAdminEditModal({ item, onClose, onSaved }: MenuAdminEditModa
             {previewSrc && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
+                key={previewSrc}
                 src={previewSrc}
                 alt=""
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}

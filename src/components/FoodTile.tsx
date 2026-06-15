@@ -43,6 +43,7 @@ export function FoodTile({ item, h = 96, glyphSize = 46, rounded }: FoodTileProp
       {src && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
+          key={src}
           src={src}
           alt=""
           loading="lazy"

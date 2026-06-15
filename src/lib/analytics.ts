@@ -146,6 +146,13 @@ function inWindow(o: Order, w: WindowDef): boolean {
   return o.createdAt >= w.start && o.createdAt < w.end;
 }
 
+// What counts toward income/sales: a paid order that wasn't voided. A cancel
+// reverses stock (see store.updateOrder) but leaves `paid` set, so without the
+// status check a paid-then-cancelled order would still inflate revenue.
+function isIncome(o: Order): boolean {
+  return o.paid && o.status !== ORDER_STATUS.CANCELLED;
+}
+
 interface WindowStats {
   revenue: number;
   orders: number;
@@ -155,17 +162,18 @@ interface WindowStats {
 }
 
 function statsFor(all: Order[], w: WindowDef): WindowStats {
-  const inW = all.filter((o) => inWindow(o, w));
-  const paid = inW.filter((o) => o.paid);
-  const revenue = paid.reduce((s, o) => s + o.total, 0);
-  const itemsSold = inW.reduce((s, o) => s + o.items.reduce((q, i) => q + i.qty, 0), 0);
-  const paidOrders = paid.length;
-  const avg = paidOrders > 0 ? Math.round(revenue / paidOrders) : 0;
-  return { revenue, orders: inW.length, avg, itemsSold, paidOrders };
+  // All metrics share the income basis (paid, not cancelled) so revenue, order
+  // count, items sold and the average stay consistent with each other.
+  const income = all.filter((o) => inWindow(o, w) && isIncome(o));
+  const revenue = income.reduce((s, o) => s + o.total, 0);
+  const itemsSold = income.reduce((s, o) => s + o.items.reduce((q, i) => q + i.qty, 0), 0);
+  const orders = income.length;
+  const avg = orders > 0 ? Math.round(revenue / orders) : 0;
+  return { revenue, orders, avg, itemsSold, paidOrders: orders };
 }
 
 function buildTrend(orders: Order[], range: SummaryRange, w: WindowDef, now = Date.now()): TrendPoint[] {
-  const paid = orders.filter((o) => o.paid && inWindow(o, w));
+  const paid = orders.filter((o) => isIncome(o) && inWindow(o, w));
   if (range === "today") {
     // hourly 08:00–21:00
     const points: TrendPoint[] = [];
@@ -222,13 +230,14 @@ export async function computeSummary(range: SummaryRange, now = Date.now()): Pro
   const cur = statsFor(all, current);
   const pre = statsFor(all, prev);
 
-  const inCurrent = all.filter((o) => inWindow(o, current));
-  const paidCurrent = inCurrent.filter((o) => o.paid);
+  // Sales aggregates use the income basis (paid, not cancelled) so "Menu Terjual"
+  // and best-sellers reflect what was actually sold, consistent with revenue.
+  const incomeCurrent = all.filter((o) => inWindow(o, current) && isIncome(o));
 
-  // top menu (by qty across the window, all orders)
+  // top menu (by qty across the window, income orders only)
   interface Agg { id: string; name: string; cat: string; qty: number; revenue: number; grad: [string, string]; g: string; }
   const aggMap = new Map<string, Agg>();
-  for (const o of inCurrent) {
+  for (const o of incomeCurrent) {
     for (const it of o.items) {
       const p = menuById.get(it.id);
       const cat = p?.cat ?? "Snack";
@@ -282,7 +291,7 @@ export async function computeSummary(range: SummaryRange, now = Date.now()): Pro
       avg: pctDelta(cur.avg, pre.avg),
       itemsSold: pctDelta(cur.itemsSold, pre.itemsSold),
     },
-    paymentMix: paymentMixOf(paidCurrent),
+    paymentMix: paymentMixOf(incomeCurrent),
     topMenu,
     categoryBreakdown,
     trend: buildTrend(all, range, current, now),
@@ -313,27 +322,29 @@ export async function computeReport(range: ReportRange, now = Date.now()): Promi
   for (let i = 0; i < days; i++) {
     const dayStart = start + i * DAY_MS;
     const dayEnd = dayStart + DAY_MS;
-    const inDay = all.filter((o) => o.createdAt >= dayStart && o.createdAt < dayEnd);
-    const paidInDay = inDay.filter((o) => o.paid);
+    // Income basis (paid, not cancelled) — counts and money all on the same set.
+    const incomeInDay = all.filter(
+      (o) => o.createdAt >= dayStart && o.createdAt < dayEnd && isIncome(o),
+    );
 
-    const gross = paidInDay.reduce((s, o) => s + o.subtotal + o.service, 0);
-    const discount = paidInDay.reduce((s, o) => s + o.discount, 0);
-    const net = paidInDay.reduce((s, o) => s + o.total, 0);
+    const gross = incomeInDay.reduce((s, o) => s + o.subtotal + o.service, 0);
+    const discount = incomeInDay.reduce((s, o) => s + o.discount, 0);
+    const net = incomeInDay.reduce((s, o) => s + o.total, 0);
 
-    for (const o of paidInDay) {
+    for (const o of incomeInDay) {
       const bucket = isQris(o) ? payment.qris : payment.kasir;
       bucket.count += 1;
       bucket.revenue += o.total;
     }
 
     totalNet += net;
-    totalOrders += inDay.length;
+    totalOrders += incomeInDay.length;
     totalDiscount += discount;
 
     daily.push({
       date: isoDate(dayStart),
       label: DAY_NAMES[tzDay(dayStart)],
-      orders: inDay.length,
+      orders: incomeInDay.length,
       gross,
       discount,
       net,

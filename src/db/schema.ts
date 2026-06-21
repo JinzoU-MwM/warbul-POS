@@ -131,6 +131,7 @@ export const orderItems = sqliteTable("order_items", {
   price: integer("price").notNull(), // unit price incl. modifiers
   qty: integer("qty").notNull(),
   opts: text("opts", { mode: "json" }).notNull().$type<string[]>(),
+  note: text("note"), // per-item customer note (nullable)
 }, (t) => [index("order_items_order_id_idx").on(t.orderId)]);
 
 export const members = sqliteTable("members", {

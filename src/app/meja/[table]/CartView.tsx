@@ -1,20 +1,47 @@
 "use client";
-import type { JSX } from "react";
+import { useState, type JSX } from "react";
 import { FoodTile, QtyStepper } from "@/components";
 import { Bean } from "@/components/glyphs";
 import { rupiah } from "@/lib/constants";
 import { CartHeader, OptsLine, Row, type ResolvedLine } from "./shared";
+
+/** Per-line note field. Holds local state and commits on blur, so typing does
+ *  not re-key the cart line (which would remount the input and lose focus). */
+function NoteInput({ initial, onCommit }: { initial: string; onCommit: (v: string) => void }): JSX.Element {
+  const [v, setV] = useState(initial);
+  return (
+    <input
+      value={v}
+      onChange={(e) => setV(e.target.value)}
+      onBlur={() => { if (v !== initial) onCommit(v); }}
+      maxLength={140}
+      placeholder="+ Catatan (mis. es sedikit)"
+      style={{
+        width: "100%",
+        marginTop: 6,
+        padding: "6px 9px",
+        borderRadius: 9,
+        border: "1px solid var(--line)",
+        background: "var(--cream)",
+        fontFamily: "inherit",
+        fontSize: 12,
+        color: "var(--ink)",
+      }}
+    />
+  );
+}
 
 interface CartViewProps {
   lines: ResolvedLine[];
   subtotal: number;
   serviceFee: number;
   onQty: (key: string, qty: number) => void;
+  onNote: (key: string, note: string) => void;
   onMenu: () => void;
   onCheckout: () => void;
 }
 
-export default function CartView({ lines, subtotal, serviceFee, onQty, onMenu, onCheckout }: CartViewProps): JSX.Element {
+export default function CartView({ lines, subtotal, serviceFee, onQty, onNote, onMenu, onCheckout }: CartViewProps): JSX.Element {
   if (!lines.length) {
     return (
       <>
@@ -67,6 +94,7 @@ export default function CartView({ lines, subtotal, serviceFee, onQty, onMenu, o
                 <div className="num" style={{ color: "var(--coffee)", fontSize: 15, marginTop: 4 }}>
                   {rupiah(l.unit)}
                 </div>
+                <NoteInput initial={l.note ?? ""} onCommit={(v) => onNote(l.key, v)} />
               </div>
               <div style={{ display: "flex", alignItems: "flex-end" }}>
                 <QtyStepper qty={l.qty} min={0} size="sm" onChange={(q) => onQty(l.key, q)} />

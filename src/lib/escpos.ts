@@ -149,6 +149,7 @@ export function buildReceiptEscPos(
   for (const it of order.items) {
     p.kv(`${it.qty}x ${it.name}`, rupiah(it.price * it.qty));
     if (it.opts && it.opts.length) p.line("  " + it.opts.join(", "));
+    if (it.note) p.line("  * " + it.note);
   }
   p.rule();
 

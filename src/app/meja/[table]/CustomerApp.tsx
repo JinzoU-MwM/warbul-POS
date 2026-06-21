@@ -104,6 +104,7 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
         qty: l.qty,
         opts: modSummary(product, l.sel),
         unit: unitPrice(product, l.sel),
+        note: l.note,
       };
     })
     .filter((l): l is ResolvedLine => l !== null);
@@ -127,14 +128,28 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
     serviceFee,
   );
 
-  const addLine = (id: string, sel: Selection, n: number) => {
+  const addLine = (id: string, sel: Selection, n: number, note?: string) => {
     setCart((c) => {
-      const k = lineKey(id, sel);
+      const k = lineKey(id, sel, note || "");
       const cur = c[k];
       const q = (cur ? cur.qty : 0) + n;
       const next = { ...c };
       if (q <= 0) delete next[k];
-      else next[k] = { id, sel, qty: q };
+      else next[k] = { id, sel, qty: q, note: note || undefined };
+      return next;
+    });
+  };
+
+  // Edit a line's note in the cart: re-key the entry, preserving qty.
+  const setNote = (key: string, note: string) => {
+    setCart((c) => {
+      const cur = c[key];
+      if (!cur) return c;
+      const cleaned = note.trim() ? note : undefined;
+      const newKey = lineKey(cur.id, cur.sel, cleaned || "");
+      const next = { ...c };
+      delete next[key];
+      next[newKey] = { ...cur, note: cleaned };
       return next;
     });
   };
@@ -157,7 +172,7 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
       const order = await createOrder({
         table,
         method,
-        lines: Object.values(cart).map((l) => ({ id: l.id, sel: l.sel, qty: l.qty })),
+        lines: Object.values(cart).map((l) => ({ id: l.id, sel: l.sel, qty: l.qty, note: l.note })),
         promoCode: promo?.code ?? null,
         phone: phone || null,
       });
@@ -221,6 +236,7 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
             subtotal={subtotal}
             serviceFee={serviceFee}
             onQty={setQty}
+            onNote={setNote}
             onMenu={() => setView("menu")}
             onCheckout={() => setView("checkout")}
           />
@@ -262,8 +278,8 @@ export default function CustomerApp({ table }: { table: number }): JSX.Element {
           <DetailSheet
             product={detail}
             onClose={() => setDetail(null)}
-            onAdd={(sel, n) => {
-              addLine(detail.id, sel, n);
+            onAdd={(sel, n, note) => {
+              addLine(detail.id, sel, n, note);
               setDetail(null);
             }}
           />

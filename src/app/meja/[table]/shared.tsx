@@ -8,6 +8,7 @@ export interface CartLine {
   id: string;
   sel: Selection;
   qty: number;
+  note?: string;
 }
 
 /** A resolved cart line with its product + computed display values. */
@@ -18,11 +19,14 @@ export interface ResolvedLine {
   qty: number;
   opts: string[];
   unit: number;
+  note?: string;
 }
 
 export type View = "menu" | "cart" | "checkout" | "status";
 
-export const lineKey = (id: string, sel: Selection): string => id + "|" + JSON.stringify(sel);
+// Include the note so the same item+modifiers with different notes stay distinct lines.
+export const lineKey = (id: string, sel: Selection, note = ""): string =>
+  id + "|" + JSON.stringify(sel) + "|" + note;
 
 export const pad2 = (n: number): string => String(n).padStart(2, "0");
 

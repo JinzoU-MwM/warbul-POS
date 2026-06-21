@@ -193,6 +193,11 @@ export function OrderDetail({ order, cashierName, onPatch }: OrderDetailProps): 
               {it.opts && it.opts.length > 0 && (
                 <div style={{ fontSize: 12, color: "#8b7f6c", marginTop: 2 }}>{it.opts.join(" · ")}</div>
               )}
+              {it.note && (
+                <div style={{ fontSize: 12.5, color: "var(--green-700)", marginTop: 3, fontWeight: 700 }}>
+                  📝 {it.note}
+                </div>
+              )}
             </div>
             <span style={{ color: "#8b7f6c", fontSize: 13.5, paddingTop: 1 }}>{rupiah(it.price)}</span>
             <span className="num" style={{ fontSize: 15, minWidth: 80, textAlign: "right", paddingTop: 1 }}>{rupiah(it.price * it.qty)}</span>

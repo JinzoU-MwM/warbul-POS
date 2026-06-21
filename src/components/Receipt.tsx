@@ -19,6 +19,7 @@ import {
 } from "@/lib/escpos";
 import { Bean } from "./glyphs";
 import { Icons } from "./icons";
+import { downloadReceiptImage } from "@/lib/receipt-image";
 
 const dash: React.CSSProperties = {
   border: "none",
@@ -105,6 +106,9 @@ export function Receipt({ order, settings, cashierName }: ReceiptProps): JSX.Ele
           {it.opts && it.opts.length > 0 && (
             <div style={{ fontSize: 11, color: "#8b7f6c", paddingLeft: 16 }}>{it.opts.join(", ")}</div>
           )}
+          {it.note && (
+            <div style={{ fontSize: 11, color: "#5b5145", paddingLeft: 16, fontStyle: "italic" }}>* {it.note}</div>
+          )}
         </div>
       ))}
 
@@ -139,9 +143,10 @@ export function Receipt({ order, settings, cashierName }: ReceiptProps): JSX.Ele
 
 export interface ReceiptModalProps extends ReceiptProps {
   onClose: () => void;
+  download?: boolean; // customer mode: show "Download Struk" instead of print controls
 }
 
-export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptModalProps): JSX.Element {
+export function ReceiptModal({ order, settings, cashierName, onClose, download = false }: ReceiptModalProps): JSX.Element {
   // Cetak Struk:
   //  - Native app  -> print directly over Bluetooth (no RawBT); pick printer once.
   //  - Android web -> RawBT bridge.
@@ -325,20 +330,22 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
           </div>
         )}
 
-        <div
-          className="rcpt-paper"
-          style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}
-        >
-          <span style={{ fontSize: 12, color: "#8b7f6c", whiteSpace: "nowrap" }}>Lebar kertas</span>
-          <div style={{ display: "flex", gap: 6, flex: 1 }}>
-            <button type="button" onClick={() => changePaper(58)} style={paperBtn(58)}>
-              58mm
-            </button>
-            <button type="button" onClick={() => changePaper(80)} style={paperBtn(80)}>
-              80mm
-            </button>
+        {!download && (
+          <div
+            className="rcpt-paper"
+            style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}
+          >
+            <span style={{ fontSize: 12, color: "#8b7f6c", whiteSpace: "nowrap" }}>Lebar kertas</span>
+            <div style={{ display: "flex", gap: 6, flex: 1 }}>
+              <button type="button" onClick={() => changePaper(58)} style={paperBtn(58)}>
+                58mm
+              </button>
+              <button type="button" onClick={() => changePaper(80)} style={paperBtn(80)}>
+                80mm
+              </button>
+            </div>
           </div>
-        </div>
+        )}
         <div className="rcpt-actions" style={{ display: "flex", gap: 10, marginTop: 10 }}>
           <button
             type="button"
@@ -358,25 +365,45 @@ export function ReceiptModal({ order, settings, cashierName, onClose }: ReceiptM
           >
             Tutup
           </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            disabled={busy}
-            className="btn btn-green"
-            style={{
-              flex: 1.4,
-              borderRadius: 13,
-              padding: "13px",
-              fontSize: 14,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              opacity: busy ? 0.7 : 1,
-            }}
-          >
-            <Icons.printer /> {busy ? "Mencetak…" : "Cetak Struk"}
-          </button>
+          {download ? (
+            <button
+              type="button"
+              onClick={() => downloadReceiptImage(order, effSettings)}
+              className="btn btn-green"
+              style={{
+                flex: 1.4,
+                borderRadius: 13,
+                padding: "13px",
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+              }}
+            >
+              <Icons.download /> Download Struk
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handlePrint}
+              disabled={busy}
+              className="btn btn-green"
+              style={{
+                flex: 1.4,
+                borderRadius: 13,
+                padding: "13px",
+                fontSize: 14,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                opacity: busy ? 0.7 : 1,
+              }}
+            >
+              <Icons.printer /> {busy ? "Mencetak…" : "Cetak Struk"}
+            </button>
+          )}
         </div>
       </div>
     </div>

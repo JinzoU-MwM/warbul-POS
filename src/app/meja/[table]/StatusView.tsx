@@ -255,7 +255,7 @@ export default function StatusView({ orderId, table, onMenu }: StatusViewProps):
                 cursor: "pointer",
               }}
             >
-              <Icons.print size={17} /> Struk
+              <Icons.download size={17} /> Download Struk
             </button>
           </div>
           <div style={{ background: "#fff", borderRadius: 18, padding: "15px 17px", border: "1px solid var(--cream-200)" }}>
@@ -267,6 +267,11 @@ export default function StatusView({ orderId, table, onMenu }: StatusViewProps):
                   </span>{" "}
                   {it.name}
                   <OptsLine opts={it.opts} />
+                  {it.note && (
+                    <div style={{ fontSize: 11.5, color: "var(--green-700)", marginTop: 2, fontWeight: 600 }}>
+                      📝 {it.note}
+                    </div>
+                  )}
                 </span>
                 <span className="num">{rupiah(it.price * it.qty)}</span>
               </div>
@@ -352,7 +357,7 @@ export default function StatusView({ orderId, table, onMenu }: StatusViewProps):
         </div>
       </div>
 
-      {receipt && <ReceiptModal order={order} onClose={() => setReceipt(false)} />}
+      {receipt && <ReceiptModal order={order} onClose={() => setReceipt(false)} download />}
     </>
   );
 }

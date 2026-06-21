@@ -41,7 +41,7 @@ export async function deleteProduct(id: string): Promise<void> {
 export interface CreateOrderBody {
   table: number;
   method: OrderMethod;
-  lines: { id: string; sel?: Selection; qty: number }[];
+  lines: { id: string; sel?: Selection; qty: number; note?: string }[];
   promoCode?: string | null;
   phone?: string | null;
   // cashier-only (ignored for anonymous callers, enforced server-side):

@@ -12,6 +12,7 @@ import { storeMinutesOfDay } from "./tz";
 import { emitChange } from "./events";
 import { DEFAULT_SETTINGS } from "./store-defaults";
 import { UNLIMITED_STOCK } from "./types";
+import { cleanNote } from "./notes";
 import type {
   Order, OrderItem, OrderMethod, OrderStatus, Product, Member,
   Selection, StoreSettings, ModGroupFull, ModType, ModOption, Category,
@@ -317,7 +318,7 @@ function toOrder(o: typeof orders.$inferSelect, items: OrderItem[]): Order {
 }
 
 function toItem(r: typeof orderItems.$inferSelect): OrderItem {
-  return { id: r.productId, name: r.name, price: r.price, qty: r.qty, opts: r.opts };
+  return { id: r.productId, name: r.name, price: r.price, qty: r.qty, opts: r.opts, note: r.note ?? undefined };
 }
 
 async function itemsFor(orderId: string): Promise<OrderItem[]> {
@@ -439,6 +440,7 @@ export interface OrderLineInput {
   id: string;
   sel?: Selection;
   qty: number;
+  note?: string;
 }
 
 export interface CreateOrderInput {
@@ -500,6 +502,7 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
     resolved.push({
       id: p.id, name: p.name, price: unitPrice(p, line.sel, groups), qty,
       opts: modSummary(p, line.sel, groups),
+      note: cleanNote(line.note) ?? undefined,
     });
   }
 
@@ -549,7 +552,7 @@ export async function addOrder(input: CreateOrderInput): Promise<Order> {
       await tx.insert(orderItems).values(
         resolved.map((it) => ({
           id: `${newId}-${it.id}-${Math.random().toString(36).slice(2, 7)}`,
-          orderId: newId, productId: it.id, name: it.name, price: it.price, qty: it.qty, opts: it.opts,
+          orderId: newId, productId: it.id, name: it.name, price: it.price, qty: it.qty, opts: it.opts, note: it.note ?? null,
         })),
       );
     }

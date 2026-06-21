@@ -129,6 +129,7 @@ export interface OrderItem {
   price: number; // unit price (incl. modifiers) at time of order
   qty: number;
   opts: string[]; // human-readable modifier labels
+  note?: string; // per-item customer note
 }
 
 export interface PakasirInfo {

@@ -8,13 +8,14 @@ import { rupiah } from "@/lib/constants";
 interface DetailSheetProps {
   product: Product;
   onClose: () => void;
-  onAdd: (sel: Selection, qty: number) => void;
+  onAdd: (sel: Selection, qty: number, note: string) => void;
 }
 
 export default function DetailSheet({ product, onClose, onAdd }: DetailSheetProps): JSX.Element {
   const { defaultSelection, unitPrice } = useModifiers();
   const [sel, setSel] = useState<Selection>(() => defaultSelection(product));
   const [qty, setQty] = useState(1);
+  const [note, setNote] = useState("");
   const unit = unitPrice(product, sel);
 
   return (
@@ -79,6 +80,29 @@ export default function DetailSheet({ product, onClose, onAdd }: DetailSheetProp
           <p style={{ fontSize: 14, lineHeight: 1.55, color: "#6f6353", marginTop: 10 }}>{product.desc}</p>
 
           <ModifierGroups item={product} sel={sel} onChange={setSel} />
+
+          <label style={{ display: "block", marginTop: 14, fontSize: 13, fontWeight: 700, color: "var(--ink)" }}>
+            Catatan (opsional)
+          </label>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={140}
+            rows={2}
+            placeholder="mis. es sedikit, tanpa gula, pedas…"
+            style={{
+              width: "100%",
+              marginTop: 6,
+              padding: "10px 12px",
+              borderRadius: 12,
+              border: "1.5px solid var(--line)",
+              background: "#fff",
+              fontFamily: "inherit",
+              fontSize: 13.5,
+              resize: "none",
+              color: "var(--ink)",
+            }}
+          />
           <div style={{ height: 8 }} />
         </div>
 
@@ -97,7 +121,7 @@ export default function DetailSheet({ product, onClose, onAdd }: DetailSheetProp
           </div>
           <button
             type="button"
-            onClick={() => onAdd(sel, qty)}
+            onClick={() => onAdd(sel, qty, note)}
             className="btn btn-gold"
             style={{ flex: 1, borderRadius: 14, padding: "15px", fontSize: 14.5, display: "flex", justifyContent: "center", gap: 8 }}
           >

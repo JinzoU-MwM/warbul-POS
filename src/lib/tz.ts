@@ -34,3 +34,20 @@ export function storeMinutesOfDay(now: number = Date.now()): number {
   const d = new Date(now + STORE_TZ_OFFSET_MS);
   return d.getUTCHours() * 60 + d.getUTCMinutes();
 }
+
+/** Midnight of the 1st of the store-local month containing `now`, as absolute epoch ms. */
+export function startOfStoreMonth(now: number = Date.now()): number {
+  const d = new Date(now + STORE_TZ_OFFSET_MS);
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1) - STORE_TZ_OFFSET_MS;
+}
+
+/** Start of a specific store-local month (year, month1 = 1–12), as absolute epoch ms. */
+export function startOfStoreMonthOf(year: number, month1: number): number {
+  return Date.UTC(year, month1 - 1, 1) - STORE_TZ_OFFSET_MS;
+}
+
+/** { year, month1 } of `ts` in the store timezone (month1 = 1–12). */
+export function storeYearMonth(ts: number): { year: number; month1: number } {
+  const d = new Date(ts + STORE_TZ_OFFSET_MS);
+  return { year: d.getUTCFullYear(), month1: d.getUTCMonth() + 1 };
+}

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useMemo, useState, type JSX } from "react";
 import { getSalesReport, reportCsvUrl } from "@/lib/api";
 import { rupiah } from "@/lib/constants";
 import { Icons } from "@/components";
@@ -9,7 +9,14 @@ const TABS: { k: ReportRange; l: string }[] = [
   { k: "week", l: "Minggu Ini" },
   { k: "lastweek", l: "Minggu Lalu" },
   { k: "month", l: "Bulan Ini" },
+  { k: "lastmonth", l: "Bulan Lalu" },
 ];
+
+const MONTHS_ID = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+const PRESET_KEYS = new Set<string>(["week", "lastweek", "month", "lastmonth"]);
 
 function CubeIcon({ size = 22, color = "currentColor" }: { size?: number; color?: string }): JSX.Element {
   return (
@@ -37,6 +44,20 @@ export function ReportView() {
   const [range, setRange] = useState<ReportRange>("week");
   const [report, setReport] = useState<SalesReport | null>(null);
 
+  // Last 12 calendar months for the picker (any month, not just this/last).
+  const monthOptions = useMemo(() => {
+    const out: { key: string; label: string }[] = [];
+    const d0 = new Date();
+    for (let i = 0; i < 12; i++) {
+      const d = new Date(d0.getFullYear(), d0.getMonth() - i, 1);
+      out.push({
+        key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`,
+        label: `${MONTHS_ID[d.getMonth()]} ${d.getFullYear()}`,
+      });
+    }
+    return out;
+  }, []);
+
   useEffect(() => {
     getSalesReport(range).then(setReport).catch(() => {});
   }, [range]);
@@ -52,8 +73,6 @@ export function ReportView() {
         { orders: 0, gross: 0, discount: 0, net: 0 },
       )
     : { orders: 0, gross: 0, discount: 0, net: 0 };
-
-  const noteRange = TABS.find((t) => t.k === range)?.l ?? "";
 
   return (
     <>
@@ -74,7 +93,7 @@ export function ReportView() {
           <div className="brand" style={{ fontSize: 23, fontWeight: 700 }}>Laporan Penjualan</div>
           <div style={{ fontSize: 13, color: "#8b7f6c", marginTop: 2 }}>Rincian performa penjualan & transaksi</div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div className="owner-rangebar">
             {TABS.map((t) => (
               <button
@@ -86,6 +105,26 @@ export function ReportView() {
               </button>
             ))}
           </div>
+          <select
+            aria-label="Pilih bulan tertentu"
+            value={PRESET_KEYS.has(range) ? "" : range}
+            onChange={(e) => e.target.value && setRange(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: 10,
+              border: "1px solid var(--line,#E6DBC4)",
+              background: "var(--paper-2,#fff)",
+              color: "var(--coffee,#5b4636)",
+              fontSize: 13.5,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <option value="">Pilih bulan…</option>
+            {monthOptions.map((m) => (
+              <option key={m.key} value={m.key}>{m.label}</option>
+            ))}
+          </select>
           <a href={reportCsvUrl(range)} download className="owner-exportbtn">
             <Icons.cart size={16} /> Ekspor CSV
           </a>
@@ -114,7 +153,7 @@ export function ReportView() {
 
             <div className="owner-card rpt-daily" style={{ marginTop: 18, padding: "20px 22px" }}>
               <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Rincian Harian</div>
-              <div style={{ fontSize: 12.5, color: "#8b7f6c", marginBottom: 8 }}>{noteRange}</div>
+              <div style={{ fontSize: 12.5, color: "#8b7f6c", marginBottom: 8 }}>{report.label}</div>
 
               {/* Phones: one card per day so the income figures (esp. BERSIH) are
                   readable without sideways-scrolling a wide table. */}
@@ -140,7 +179,7 @@ export function ReportView() {
                 ))}
                 <div className="rpt-daycard rpt-daycard-total">
                   <div className="rpt-daycard-top">
-                    <div style={{ fontWeight: 800 }}>Total · {noteRange}</div>
+                    <div style={{ fontWeight: 800 }}>Total · {report.label}</div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: 10.5, color: "#a99c86", fontWeight: 700, letterSpacing: ".03em" }}>BERSIH</div>
                       <span className="num" style={{ fontSize: 18, color: "var(--coffee)" }}>{rupiah(tot.net)}</span>

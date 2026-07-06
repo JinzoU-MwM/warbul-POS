@@ -3,14 +3,24 @@
 // produces NaN or Infinity.
 import "server-only";
 import { getOrdersSince, getRecentOrders, getMenu } from "./store";
-import { startOfStoreDay as startOfToday, storeIsoDate as isoDate, storeDayOfWeek as tzDay } from "./tz";
+import {
+  startOfStoreDay as startOfToday,
+  storeIsoDate as isoDate,
+  storeDayOfWeek as tzDay,
+  startOfStoreMonth,
+  startOfStoreMonthOf,
+  storeYearMonth,
+} from "./tz";
 import { ORDER_STATUS } from "./constants";
 import type { Order, Product } from "./types";
 
 /* ─────────────────────────── types ─────────────────────────── */
 
 export type SummaryRange = "today" | "7d" | "30d";
-export type ReportRange = "week" | "lastweek" | "month";
+export type ReportPreset = "week" | "lastweek" | "month" | "lastmonth";
+// A preset tab OR a specific calendar month "YYYY-MM" (from the month picker).
+// `(string & {})` keeps preset autocomplete while allowing the picker's month keys.
+export type ReportRange = ReportPreset | (string & {});
 
 export interface PaymentBucket {
   count: number;
@@ -82,6 +92,7 @@ export interface ReportDailyRow {
 
 export interface SalesReport {
   range: ReportRange;
+  label: string; // human period label, e.g. "Juli 2026" or "Minggu Ini"
   summary: {
     net: number;
     orders: number;
@@ -302,15 +313,51 @@ export async function computeSummary(range: SummaryRange, now = Date.now()): Pro
 
 /* ─────────────────────────── report ─────────────────────────── */
 
-function reportWindow(range: ReportRange, now = Date.now()): { start: number; days: number } {
+const MONTH_NAMES_ID = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
+
+function monthLabel(monthStart: number): string {
+  const { year, month1 } = storeYearMonth(monthStart);
+  return `${MONTH_NAMES_ID[month1 - 1]} ${year}`;
+}
+
+// Resolve a report range to an absolute [start, end) window (store-timezone aware)
+// plus a human label. MONTH ranges use CALENDAR boundaries so this month and last
+// month never mix; "YYYY-MM" targets a specific calendar month (the picker).
+function reportWindow(range: ReportRange, now = Date.now()): { start: number; end: number; label: string } {
   const todayStart = startOfToday(now);
-  if (range === "lastweek") return { start: todayStart - 13 * DAY_MS, days: 7 };
-  if (range === "month") return { start: todayStart - 29 * DAY_MS, days: 30 };
-  return { start: todayStart - 6 * DAY_MS, days: 7 }; // week
+  const tomorrow = todayStart + DAY_MS;
+
+  if (range === "lastweek") {
+    return { start: todayStart - 13 * DAY_MS, end: todayStart - 6 * DAY_MS, label: "Minggu Lalu" };
+  }
+  if (range === "month") {
+    const start = startOfStoreMonth(now);
+    return { start, end: tomorrow, label: monthLabel(start) }; // this calendar month, up to today
+  }
+  if (range === "lastmonth") {
+    const curStart = startOfStoreMonth(now);
+    const start = startOfStoreMonth(curStart - 1); // any instant inside the previous month
+    return { start, end: curStart, label: monthLabel(start) };
+  }
+  const m = /^(\d{4})-(\d{1,2})$/.exec(range);
+  if (m) {
+    const year = Number(m[1]);
+    const month1 = Number(m[2]);
+    if (month1 >= 1 && month1 <= 12) {
+      const start = startOfStoreMonthOf(year, month1);
+      const nextStart = startOfStoreMonthOf(month1 === 12 ? year + 1 : year, month1 === 12 ? 1 : month1 + 1);
+      // cap the current/future month at "today" so we don't render empty future days
+      return { start, end: Math.min(nextStart, tomorrow), label: monthLabel(start) };
+    }
+  }
+  return { start: todayStart - 6 * DAY_MS, end: tomorrow, label: "Minggu Ini" }; // week (default)
 }
 
 export async function computeReport(range: ReportRange, now = Date.now()): Promise<SalesReport> {
-  const { start, days } = reportWindow(range, now);
+  const { start, end, label } = reportWindow(range, now);
   const all = await getOrdersSince(start);
 
   const daily: ReportDailyRow[] = [];
@@ -319,8 +366,7 @@ export async function computeReport(range: ReportRange, now = Date.now()): Promi
   let totalDiscount = 0;
   const payment = emptyMix();
 
-  for (let i = 0; i < days; i++) {
-    const dayStart = start + i * DAY_MS;
+  for (let dayStart = start; dayStart < end; dayStart += DAY_MS) {
     const dayEnd = dayStart + DAY_MS;
     // Income basis (paid, not cancelled) — counts and money all on the same set.
     const incomeInDay = all.filter(
@@ -356,6 +402,7 @@ export async function computeReport(range: ReportRange, now = Date.now()): Promi
 
   return {
     range,
+    label,
     summary: { net: totalNet, orders: totalOrders, avg, discount: totalDiscount },
     daily,
     payment,

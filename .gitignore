@@ -58,3 +58,5 @@ warbul.db-*
 # stray local libsql/auth db artifacts
 /auth
 /auth-wal
+
+.vercel

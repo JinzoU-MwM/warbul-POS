@@ -354,6 +354,14 @@ export async function getOrders(filter: OrderFilter = "all"): Promise<Order[]> {
   return ordersWithItems(rows);
 }
 
+/** Count of not-done, not-cancelled orders — for the POS badge. One scanned
+ *  row instead of fetching every active order plus its items. */
+export async function countActiveOrders(): Promise<number> {
+  const [{ n }] = await db.select({ n: count() }).from(orders)
+    .where(and(ne(orders.status, ORDER_STATUS.DONE), ne(orders.status, ORDER_STATUS.CANCELLED)));
+  return n;
+}
+
 // Build full Orders (with items) for the given order rows, batching the item
 // reads into one query. Shared by the windowed/recent getters below.
 async function ordersWithItems(rows: (typeof orders.$inferSelect)[]): Promise<Order[]> {

@@ -43,7 +43,10 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
   const [filter, setFilter] = useState<FilterKey>("active");
   const [, setTick] = useState(0);
 
-  const refresh = () => listOrders("all").then(setOrders).catch(() => {});
+  // 24h window, not the whole history: the POS recap ("Selesai") only needs
+  // recent orders, and an unbounded fetch every poll grows with every sale —
+  // it's what burned the Turso read quota. Old history lives in owner reports.
+  const refresh = () => listOrders("all", Date.now() - 86_400_000).then(setOrders).catch(() => {});
   useEffect(() => { refresh(); }, []);
   useLive(["orders", "menu"], () => { refresh(); });
 

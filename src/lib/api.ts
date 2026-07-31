@@ -60,8 +60,12 @@ export async function getOrder(id: string): Promise<Order | null> {
   if (res.status === 404) return null;
   return (await j<{ order: Order | null }>(res)).order;
 }
-export async function listOrders(filter = "all"): Promise<Order[]> {
-  return (await j<{ orders: Order[] }>(await fetch(`/api/orders?filter=${encodeURIComponent(filter)}`, { cache: "no-store" }))).orders;
+export async function listOrders(filter = "all", since?: number): Promise<Order[]> {
+  const q = `filter=${encodeURIComponent(filter)}` + (since ? `&since=${since}` : "");
+  return (await j<{ orders: Order[] }>(await fetch(`/api/orders?${q}`, { cache: "no-store" }))).orders;
+}
+export async function countActiveOrders(): Promise<number> {
+  return (await j<{ count: number }>(await fetch("/api/orders?countOnly=1", { cache: "no-store" }))).count;
 }
 export async function patchOrder(id: string, patch: Partial<Order>): Promise<Order> {
   return (await j<{ order: Order }>(await fetch(`/api/orders/${id}`, {

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getOrders, addOrder, updateOrder, type OrderFilter, type CreateOrderInput } from "@/lib/store";
+import { getOrders, getOrdersSince, countActiveOrders, addOrder, updateOrder, type OrderFilter, type CreateOrderInput } from "@/lib/store";
 import { getServerSession } from "@/lib/session";
 import { createQris } from "@/lib/pakasir";
 import type { Order, OrderMethod, OrderStatus } from "@/lib/types";
@@ -28,9 +28,13 @@ export async function GET(req: NextRequest) {
     const session = await getServerSession();
     if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    if (req.nextUrl.searchParams.get("countOnly")) {
+      return NextResponse.json({ count: await countActiveOrders() });
+    }
     const raw = req.nextUrl.searchParams.get("filter") ?? "all";
     const filter: OrderFilter = (FILTERS as string[]).includes(raw) ? (raw as OrderFilter) : "all";
-    const orders = await getOrders(filter);
+    const since = Number(req.nextUrl.searchParams.get("since"));
+    const orders = since > 0 ? await getOrdersSince(since) : await getOrders(filter);
     return NextResponse.json({ orders });
   } catch (err) {
     return NextResponse.json({ error: String((err as Error)?.message ?? err) }, { status: 400 });

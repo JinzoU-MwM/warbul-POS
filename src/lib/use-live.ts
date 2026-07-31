@@ -32,10 +32,13 @@ export function useLive(kinds: ChangeKind[], onKind: (kind: ChangeKind) => void)
     const want = key.split(",") as ChangeKind[];
     const wantSet = new Set(want);
 
-    // Polling fallback — the only path that works on serverless. Consumers
-    // ignore the `kind` and refetch what they need. Hidden tabs don't poll (an
-    // overnight POS tab is pure quota burn); refetch immediately on return.
-    const fire = () => want.forEach((k) => cb.current(k));
+    // Polling fallback — the only path that works on serverless. Every poll
+    // consumer ignores the `kind` and refetches everything it needs, so fire
+    // the callback ONCE per tick — per-kind firing meant a ["orders","menu"]
+    // subscriber fetched twice per tick. (SSE below stays per-kind.) Hidden
+    // tabs don't poll (an overnight POS tab is pure quota burn); refetch
+    // immediately on return.
+    const fire = () => cb.current(want[0]);
     const poll = setInterval(() => { if (!document.hidden) fire(); }, POLL_MS);
     const onVis = () => { if (!document.hidden) fire(); };
     document.addEventListener("visibilitychange", onVis);

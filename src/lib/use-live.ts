@@ -18,7 +18,9 @@ import type { ChangeKind } from "./events";
  * On serverless, set `NEXT_PUBLIC_DISABLE_SSE=1` to skip the (useless, and on
  * Vercel resource-burning) SSE connection and rely on polling alone.
  */
-const POLL_MS = 6000;
+// Turso bills by rows *scanned*; 6s polling from always-on POS/owner tabs burned
+// the whole 500M row-read free quota in Jul 2026 (833M) and got reads blocked.
+const POLL_MS = 15000;
 const SSE_DISABLED = process.env.NEXT_PUBLIC_DISABLE_SSE === "1";
 
 export function useLive(kinds: ChangeKind[], onKind: (kind: ChangeKind) => void) {
@@ -30,9 +32,13 @@ export function useLive(kinds: ChangeKind[], onKind: (kind: ChangeKind) => void)
     const want = key.split(",") as ChangeKind[];
     const wantSet = new Set(want);
 
-    // Polling fallback — the only path that works on serverless. Cheap for a
-    // single-cafe POS. Consumers ignore the `kind` and refetch what they need.
-    const poll = setInterval(() => want.forEach((k) => cb.current(k)), POLL_MS);
+    // Polling fallback — the only path that works on serverless. Consumers
+    // ignore the `kind` and refetch what they need. Hidden tabs don't poll (an
+    // overnight POS tab is pure quota burn); refetch immediately on return.
+    const fire = () => want.forEach((k) => cb.current(k));
+    const poll = setInterval(() => { if (!document.hidden) fire(); }, POLL_MS);
+    const onVis = () => { if (!document.hidden) fire(); };
+    document.addEventListener("visibilitychange", onVis);
 
     // SSE accelerator — instant updates where a long-lived process is available.
     let es: EventSource | null = null;
@@ -48,6 +54,7 @@ export function useLive(kinds: ChangeKind[], onKind: (kind: ChangeKind) => void)
 
     return () => {
       clearInterval(poll);
+      document.removeEventListener("visibilitychange", onVis);
       es?.close();
     };
   }, [key]);

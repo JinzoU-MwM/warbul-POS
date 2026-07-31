@@ -3,9 +3,8 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { listOrders } from "@/lib/api";
+import { countActiveOrders } from "@/lib/api";
 import { useLive } from "@/lib/use-live";
-import { ORDER_STATUS } from "@/lib/constants";
 import { Icons } from "@/components";
 import { NewOrderAlarm } from "@/components/NewOrderAlarm";
 import { OrdersView } from "./OrdersView";
@@ -34,7 +33,7 @@ export function PosApp({ user, initialView = "orders" }: { user: PosUser; initia
   const [activeCount, setActiveCount] = useState(0);
 
   const refreshCount = () =>
-    listOrders("active").then((o) => setActiveCount(o.filter((x) => x.status !== ORDER_STATUS.DONE).length)).catch(() => {});
+    countActiveOrders().then(setActiveCount).catch(() => {});
   useEffect(() => { refreshCount(); }, []);
   useLive(["orders"], refreshCount);
 

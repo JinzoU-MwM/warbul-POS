@@ -340,12 +340,18 @@ async function itemsByOrder(orderIds: string[]): Promise<Map<string, OrderItem[]
   return byOrder;
 }
 
-export type OrderFilter = "all" | "active" | "Menunggu Pembayaran" | "Diproses" | "Selesai";
+// Listed positively (IN) rather than `status != Selesai AND != Dibatalkan`:
+// SQLite can't seek an index on `!=`, so the negated form scanned every order
+// ever made on each 15s poll (POS badge + new-order alarm) — that was most of
+// the Turso row-read quota. IN seeks orders_status_idx and reads only live orders.
+const ACTIVE_STATUSES = [ORDER_STATUS.WAIT_PAY, ORDER_STATUS.PAID, ORDER_STATUS.COOKING];
+
+export type OrderFilter ="all" | "active" | "Menunggu Pembayaran" | "Diproses" | "Selesai";
 
 export async function getOrders(filter: OrderFilter = "all"): Promise<Order[]> {
   let rows;
   if (filter === "active") {
-    rows = await db.select().from(orders).where(and(ne(orders.status, ORDER_STATUS.DONE), ne(orders.status, ORDER_STATUS.CANCELLED))).orderBy(desc(orders.createdAt));
+    rows = await db.select().from(orders).where(inArray(orders.status, ACTIVE_STATUSES)).orderBy(desc(orders.createdAt));
   } else if (filter === "all") {
     rows = await db.select().from(orders).orderBy(desc(orders.createdAt));
   } else {
@@ -354,11 +360,10 @@ export async function getOrders(filter: OrderFilter = "all"): Promise<Order[]> {
   return ordersWithItems(rows);
 }
 
-/** Count of not-done, not-cancelled orders — for the POS badge. One scanned
- *  row instead of fetching every active order plus its items. */
+/** Count of not-done, not-cancelled orders — for the POS badge. */
 export async function countActiveOrders(): Promise<number> {
   const [{ n }] = await db.select({ n: count() }).from(orders)
-    .where(and(ne(orders.status, ORDER_STATUS.DONE), ne(orders.status, ORDER_STATUS.CANCELLED)));
+    .where(inArray(orders.status, ACTIVE_STATUSES));
   return n;
 }
 
@@ -433,14 +438,15 @@ function runWrite<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
   return result;
 }
 
-// Next sequential receipt id ("WB-101", "WB-102", …). The max is computed in SQL
-// (no full-table scan into JS); called inside addOrder's BEGIN IMMEDIATE
-// transaction, the read+insert are serialized so concurrent checkouts can't
-// allocate the same id.
+// Next sequential receipt id ("WB-101", "WB-102", …). Called inside addOrder's
+// BEGIN IMMEDIATE transaction, the read+insert are serialized so concurrent
+// checkouts can't allocate the same id. The max only looks at the 50 newest
+// orders (orders_created_at_idx) — a MAX over the whole table scanned every
+// order on each checkout. 50 rows absorbs any clock skew between instances.
 async function nextOrderId(exec: Executor = db): Promise<string> {
-  const [row] = await exec
-    .select({ max: sql<number>`COALESCE(MAX(CAST(SUBSTR(${orders.id}, 4) AS INTEGER)), 100)` })
-    .from(orders);
+  const [row] = await exec.all<{ max: number }>(sql`
+    SELECT COALESCE(MAX(CAST(SUBSTR(id, 4) AS INTEGER)), 100) AS max
+    FROM (SELECT ${orders.id} AS id FROM ${orders} ORDER BY ${orders.createdAt} DESC LIMIT 50)`);
   return "WB-" + ((row?.max ?? 100) + 1);
 }
 

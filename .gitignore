@@ -60,3 +60,6 @@ warbul.db-*
 /auth-wal
 
 .vercel
+
+# DB dumps (contain user/session data)
+/backups/

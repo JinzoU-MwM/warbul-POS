@@ -46,7 +46,8 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
   // 24h window, not the whole history: the POS recap ("Selesai") only needs
   // recent orders, and an unbounded fetch every poll grows with every sale —
   // it's what burned the Turso read quota. Old history lives in owner reports.
-  const refresh = () => listOrders("all", Date.now() - 86_400_000).then(setOrders).catch(() => {});
+  const fetchRecent = () => listOrders("all", Date.now() - 86_400_000);
+  const refresh = () => fetchRecent().then(setOrders).catch(() => {});
   useEffect(() => { refresh(); }, []);
   useLive(["orders", "menu"], () => { refresh(); });
 
@@ -77,7 +78,7 @@ export function OrdersView({ cashierName }: OrdersViewProps): JSX.Element {
       await patchOrder(id, patch);
     } finally {
       // SSE will also refresh, but refresh immediately so the panel updates
-      const next = await listOrders("all").catch(() => null);
+      const next = await fetchRecent().catch(() => null);
       if (next) {
         setOrders(next);
         setSel(id); // keep the same order selected after the patch
